@@ -9,7 +9,7 @@ export interface CachedPlayer {
   games: Game[];
 }
 
-const DB_NAME = 'doppelgambit';
+const DB_NAME = 'shadowbook';
 const STORE = 'players';
 
 function open(): Promise<IDBDatabase> {

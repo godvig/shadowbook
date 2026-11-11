@@ -60,7 +60,7 @@ export function Home({ onScouted }: { onScouted: (o: Opponent) => void }) {
           <p className="eyebrow">Opening sparring</p>
           <h1>Play the person, not the engine.</h1>
           <p className="lead">
-            Enter a username. Doppelgambit reads their public games and builds a bot that opens exactly like they do – then plays on like a human of
+            Enter a username. Shadowbook reads their public games and builds a bot that opens exactly like they do – then plays on like a human of
             their rating. Perfect for preparing your next club game, or for finding out what <em>you</em> really play.
           </p>
           <form

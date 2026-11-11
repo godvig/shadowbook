@@ -22,12 +22,12 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <button className="logo" onClick={() => setView({ name: 'home' })} aria-label="Doppelgambit – home">
-          <Logo /> Doppelgambit
+        <button className="logo" onClick={() => setView({ name: 'home' })} aria-label="Shadowbook – home">
+          <Logo /> Shadowbook
         </button>
         <span className="tag">alpha</span>
         <span className="spacer" />
-        <a className="gh" href="https://github.com/godvig/doppelgambit">GitHub</a>
+        <a className="gh" href="https://github.com/godvig/shadowbook">GitHub</a>
       </header>
       <main className="page">
         {view.name === 'home' && (

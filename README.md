@@ -1,29 +1,29 @@
-# Doppelgambit
+# Shadowbook
 
-[![CI](https://github.com/godvig/doppelgambit/actions/workflows/ci.yml/badge.svg)](https://github.com/godvig/doppelgambit/actions/workflows/ci.yml)
+[![CI](https://github.com/godvig/shadowbook/actions/workflows/ci.yml/badge.svg)](https://github.com/godvig/shadowbook/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 
-**Play the person, not the engine.** Type in a chess.com or Lichess username and Doppelgambit builds a sparring
+**Chess opponent prep: play the person, not the engine.** Type in a chess.com or Lichess username and Shadowbook builds a sparring
 partner that opens exactly like that player – the same moves, as often as they really play them – and then plays on
 like a human of their rating.
 
-Engines don't prepare you for Saturday's club game. Your opponent's 1.e4 c5 2.Nc3 e6 does. Doppelgambit lets you
+Engines don't prepare you for Saturday's club game. Your opponent's 1.e4 c5 2.Nc3 e6 does. Shadowbook lets you
 rehearse the games you are actually going to get, find out where your preparation runs out, and turn that into lessons.
 
 ![Sparring against the demo player](docs/sparring.png)
 
 ## Live demo
 
-**[godvig.github.io/doppelgambit](https://godvig.github.io/doppelgambit/)** – no account needed. Scout any public
+**[godvig.github.io/shadowbook](https://godvig.github.io/shadowbook/)** – no account needed. Scout any public
 player, or spar the built-in demo player *BishopBjörn* (a made-up 1540 with a weakness for the Fried Liver).
 
 ## Quick start
 
 ```bash
-git clone https://github.com/godvig/doppelgambit.git
-cd doppelgambit
+git clone https://github.com/godvig/shadowbook.git
+cd shadowbook
 npm install
-npm run dev        # http://localhost:5173/doppelgambit/
+npm run dev        # http://localhost:5173/shadowbook/
 ```
 
 Requires Node 20+. `npm run build` produces a static site in `dist/` that can be hosted anywhere.
@@ -87,5 +87,5 @@ CI runs all three on every push.
 
 ## License
 
-[AGPL-3.0](LICENSE). Doppelgambit builds on GPL-licensed Chessground and MIT-licensed Maia3, chess.js and ONNX Runtime.
+[AGPL-3.0](LICENSE). Shadowbook builds on GPL-licensed Chessground and MIT-licensed Maia3, chess.js and ONNX Runtime.
 Not affiliated with chess.com or Lichess.

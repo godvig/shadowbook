@@ -1,6 +1,6 @@
 name: Deploy to GitHub Pages
 
-# Builds the app and publishes it to https://godvig.github.io/doppelgambit/
+# Builds the app and publishes it to https://godvig.github.io/shadowbook/
 # One-time setup: Settings → Pages → Source: "GitHub Actions".
 on:
   push:
