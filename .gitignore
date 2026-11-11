@@ -1,0 +1,7 @@
+node_modules
+dist
+# Copied from node_modules at build time (see scripts/copy-assets.mjs)
+public/models
+*.tsbuildinfo
+.DS_Store
+.env
