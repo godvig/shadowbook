@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "presets": "node scripts/build-presets.mjs"
   },
   "dependencies": {
     "@lichess-org/chessground": "^10.1.1",

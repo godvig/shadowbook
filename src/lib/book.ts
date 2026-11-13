@@ -31,6 +31,7 @@ export interface LineStat {
   scored: number;
 }
 
+/** How deep the book goes for scouted players. Presets of elite players go deeper (see presets.ts). */
 export const BOOK_PLIES = 24;
 const LINE_PLIES = 8;
 
@@ -47,7 +48,7 @@ function pointsFor(g: Game, c: Color): number | null {
   return (g.result === '1-0') === (c === 'w') ? 1 : 0;
 }
 
-export function buildBook(games: Game[], username: string, timeClasses?: TimeClass[]): PlayerBook {
+export function buildBook(games: Game[], username: string, timeClasses?: TimeClass[], bookPlies = BOOK_PLIES): PlayerBook {
   const book: PlayerBook = {
     username,
     games: 0,
@@ -70,7 +71,7 @@ export function buildBook(games: Game[], username: string, timeClasses?: TimeCla
     book.gamesAs[color]++;
     const pts = pointsFor(g, color);
     const chess = new Chess();
-    const plies = Math.min(g.ucis.length, BOOK_PLIES);
+    const plies = Math.min(g.ucis.length, bookPlies);
     for (let i = 0; i < plies; i++) {
       const before = chess.fen();
       const uci = g.ucis[i];

@@ -1,7 +1,8 @@
-import { buildBook, type PlayerBook } from './book';
+import { BOOK_PLIES, buildBook, type PlayerBook } from './book';
 import { demoGames, DEMO_USERNAME } from './demo';
 import { fetchChessCom, fetchLichess, type FetchOptions } from './sources';
 import { loadPlayer, savePlayer } from './storage';
+import type { PresetInfo } from './presets';
 import type { Game, Site, TimeClass } from './types';
 
 /** A scouted player: their games and the opening book built from them. */
@@ -12,20 +13,24 @@ export interface Opponent {
   book: PlayerBook;
   timeClasses: TimeClass[] | null;
   fetchedAt: number;
+  /** Book depth in plies; BOOK_PLIES unless set (presets go deeper). */
+  bookPlies?: number;
+  /** Set for the built-in World Championship presets. */
+  preset?: PresetInfo;
 }
 
 const FRESH_MS = 6 * 60 * 60 * 1000;
 
-export function makeOpponent(site: Site, username: string, games: Game[], fetchedAt = Date.now()): Opponent {
+export function makeOpponent(site: Site, username: string, games: Game[], fetchedAt = Date.now(), bookPlies = BOOK_PLIES): Opponent {
   // Use the spelling the site uses, e.g. "Wille350" even if typed "wille350".
   const lower = username.toLowerCase();
   const sample = games.find((g) => g.white.toLowerCase() === lower || g.black.toLowerCase() === lower);
   const name = sample ? (sample.white.toLowerCase() === lower ? sample.white : sample.black) : username;
-  return { site, username: name, games, book: buildBook(games, name), timeClasses: null, fetchedAt };
+  return { site, username: name, games, book: buildBook(games, name, undefined, bookPlies), timeClasses: null, fetchedAt, bookPlies };
 }
 
 export function withTimeClasses(o: Opponent, timeClasses: TimeClass[] | null): Opponent {
-  return { ...o, timeClasses, book: buildBook(o.games, o.username, timeClasses ?? undefined) };
+  return { ...o, timeClasses, book: buildBook(o.games, o.username, timeClasses ?? undefined, o.bookPlies) };
 }
 
 export function demoOpponent(): Opponent {
