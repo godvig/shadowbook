@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Board } from '../components/Board';
+import { sansToUcis } from '../lib/chess';
+import { MAIA_ELO_MAX } from '../lib/maia';
 import { demoOpponent, scout, type Opponent } from '../lib/opponent';
+import { bookExit, loadPreset, PRESET_IDS, type PresetId } from '../lib/presets';
 import { SourceError } from '../lib/sources';
 import * as api from '../live/api';
 import { completeLogin, getToken, isOAuthReturn, login, logout } from '../live/lichessAuth';
 import { countdown, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, winnerOf } from '../live/match';
 import { NAMES, type LiveGame, type Me, type Message, type Pick } from '../live/types';
+import type { Color } from '../lib/types';
+import type { GameSettings } from './Game';
 import '../live/live.css';
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
@@ -26,7 +31,7 @@ function useNow(ms = 1000) {
   return now;
 }
 
-export function Match({ onScouted }: { onScouted: (o: Opponent) => void }) {
+export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void; onSpar: (o: Opponent, settings: GameSettings, startUcis: string[]) => void }) {
   const [games, setGames] = useState<LiveGame[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [tally, setTally] = useState<Record<number, Partial<Record<Pick, number>>>>({});
@@ -35,6 +40,7 @@ export function Match({ onScouted }: { onScouted: (o: Opponent) => void }) {
   const [offline, setOffline] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState('');
+  const [sparRow, setSparRow] = useState<number | null>(null);
   const now = useNow();
 
   useEffect(() => {
@@ -109,6 +115,22 @@ export function Match({ onScouted }: { onScouted: (o: Opponent) => void }) {
   const next = nextGame(games, now);
   const played = games.filter((g) => g.status === 'finished').length;
   const live = games.find((g) => g.status === 'live') ?? null;
+
+  // Start a sparring game from a match game: the moves up to where it left the bot's pre-match book
+  // (at most SPAR_START_CAP plies), against the bot of whoever had the other colour.
+  const sparOpening = async (g: LiveGame, you: Color) => {
+    const bot = you === 'w' ? g.black : g.white;
+    if (!bot) return;
+    try {
+      setNotice('');
+      const ucis = sansToUcis(sanMoves(g.pgn));
+      const [before, withMatch] = await Promise.all([loadPreset(bot), loadPreset(bot, games)]);
+      const n = bookExit(before.book, you === 'w' ? 'b' : 'w', ucis);
+      onSpar(withMatch, { you, elo: MAIA_ELO_MAX, yourElo: 1500, useBook: true }, ucis.slice(0, n));
+    } catch (e) {
+      setNotice((e as Error).message);
+    }
+  };
 
   const guard = async (fn: () => Promise<unknown>) => {
     if (!getToken()) return login();
@@ -229,7 +251,7 @@ export function Match({ onScouted }: { onScouted: (o: Opponent) => void }) {
 
       <div className="lv-pair">
         <PredictCard loaded={loaded && !offline} game={next} tally={next ? tally[next.id] : undefined} me={me} now={now} onPick={(p) => guard(async () => { await api.predict(next!.id, p); await refreshMe(); refreshStats(); })} />
-        <SparCard onScouted={onScouted} />
+        <SparCard onScouted={onScouted} games={games} />
       </div>
 
       <LiveRoom games={games} live={live} messages={messages} me={me} onPost={(gid, ply, body) => guard(() => api.post(gid, ply, body))} onHide={(id) => guard(() => api.adminHide(id))} onBan={(id) => guard(() => api.adminBan(id))} />
@@ -246,6 +268,7 @@ export function Match({ onScouted }: { onScouted: (o: Opponent) => void }) {
                   <th>Result</th>
                   <th>Opening</th>
                   <th>Community call</th>
+                  <th>Spar</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,6 +285,26 @@ export function Match({ onScouted }: { onScouted: (o: Opponent) => void }) {
                       </td>
                       <td>{g.opening ?? '–'}</td>
                       <td className="mono">{top && top[1] ? `${top[0] === 'draw' ? 'Draw' : NAMES[top[0]]} ${top[1]}%` : '–'}</td>
+                      <td>
+                        {g.status !== 'scheduled' && g.pgn && g.white && g.black ? (
+                          sparRow === g.id ? (
+                            <span className="lv-chips">
+                              <button className="lv-chip-btn" onClick={() => sparOpening(g, 'w')} title={`You play White against ${NAMES[g.black]}’s bot`}>
+                                as White
+                              </button>
+                              <button className="lv-chip-btn" onClick={() => sparOpening(g, 'b')} title={`You play Black against ${NAMES[g.white]}’s bot`}>
+                                as Black
+                              </button>
+                            </span>
+                          ) : (
+                            <button className="lv-chip-btn" onClick={() => setSparRow(g.id)}>
+                              Spar this opening
+                            </button>
+                          )
+                        ) : (
+                          '–'
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -332,7 +375,7 @@ function PredictCard({ loaded, game, tally, me, now, onPick }: { loaded: boolean
   );
 }
 
-function SparCard({ onScouted }: { onScouted: (o: Opponent) => void }) {
+function SparCard({ onScouted, games }: { onScouted: (o: Opponent) => void; games: LiveGame[] }) {
   const [site, setSite] = useState<'chess.com' | 'lichess'>('chess.com');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState('');
@@ -347,6 +390,18 @@ function SparCard({ onScouted }: { onScouted: (o: Opponent) => void }) {
       onScouted(await scout(site, name.trim(), { onProgress: setBusy }));
     } catch (err) {
       setError(err instanceof SourceError ? err.message : 'Something went wrong while reading the games.');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function preset(id: PresetId) {
+    setError('');
+    setBusy(`Loading ${NAMES[id]}…`);
+    try {
+      onScouted(await loadPreset(id, games));
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
       setBusy('');
     }
@@ -378,6 +433,11 @@ function SparCard({ onScouted }: { onScouted: (o: Opponent) => void }) {
         <button className="lv-chip-btn" onClick={() => onScouted(demoOpponent())}>
           the demo player
         </button>
+        {PRESET_IDS.map((id) => (
+          <button key={id} className="lv-chip-btn" disabled={!!busy} onClick={() => preset(id)}>
+            {NAMES[id]}
+          </button>
+        ))}
       </div>
     </section>
   );
