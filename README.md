@@ -45,6 +45,14 @@ Requires Node 20+. `npm run build` produces a static site in `dist/` that can be
 
 ![Scouting report](docs/scouting.png)
 
+### Shadowbook Live (match tab)
+
+A hub for the 2026 World Championship match: live score, a prediction for every game with a leaderboard, and a chat
+where every message is pinned to the move it was written at, so clicking it shows the board at that moment.
+Anyone can follow along; voting and posting use "Log in with Lichess" (OAuth PKCE, no password ever touches the site).
+Backend: Supabase (Postgres with row level security, realtime, one Edge Function as the only write path).
+Setup notes in [`supabase/README.md`](supabase/README.md).
+
 ## Architecture
 
 ```

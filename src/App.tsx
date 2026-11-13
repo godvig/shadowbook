@@ -5,15 +5,23 @@ import { Game, type GameSettings, type FinishedGame } from './views/Game';
 import { Debrief } from './views/Debrief';
 import type { Opponent } from './lib/opponent';
 import { Logo } from './components/Logo';
+import { Match } from './views/Match';
+import { isOAuthReturn } from './live/lichessAuth';
 
 type View =
   | { name: 'home' }
+  | { name: 'match' }
   | { name: 'report' }
   | { name: 'game'; settings: GameSettings; startUcis: string[]; key: number }
   | { name: 'debrief'; settings: GameSettings; game: FinishedGame };
 
 export default function App() {
-  const [view, setView] = useState<View>({ name: 'home' });
+  const [view, setViewRaw] = useState<View>(() => (location.hash === '#match' || isOAuthReturn() ? { name: 'match' } : { name: 'home' }));
+  const setView = (v: View) => {
+    setViewRaw(v);
+    const hash = v.name === 'match' ? '#match' : '';
+    if (location.hash !== hash) history.replaceState(null, '', `${location.pathname}${location.search}${hash}`);
+  };
   const [opponent, setOpponent] = useState<Opponent | null>(null);
 
   const start = (settings: GameSettings, startUcis: string[] = []) =>
@@ -26,10 +34,26 @@ export default function App() {
           <Logo /> Shadowbook
         </button>
         <span className="tag">alpha</span>
+        <nav className="tabs" aria-label="Sections">
+          <button className={view.name === 'match' ? '' : 'on'} aria-current={view.name === 'match' ? undefined : 'page'} onClick={() => setView({ name: 'home' })}>
+            Spar
+          </button>
+          <button className={view.name === 'match' ? 'on' : ''} aria-current={view.name === 'match' ? 'page' : undefined} onClick={() => setView({ name: 'match' })}>
+            Match <span className="live-pill">Live</span>
+          </button>
+        </nav>
         <span className="spacer" />
         <a className="gh" href="https://github.com/godvig/shadowbook">GitHub</a>
       </header>
       <main className="page">
+        {view.name === 'match' && (
+          <Match
+            onScouted={(o) => {
+              setOpponent(o);
+              setView({ name: 'report' });
+            }}
+          />
+        )}
         {view.name === 'home' && (
           <Home
             onScouted={(o) => {
