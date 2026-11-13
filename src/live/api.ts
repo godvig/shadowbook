@@ -1,0 +1,56 @@
+import { createClient } from '@supabase/supabase-js';
+import { API_URL, SUPABASE_KEY, SUPABASE_URL } from './config';
+import { getToken } from './lichessAuth';
+import type { LiveGame, Me, Message, Pick } from './types';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+
+export async function loadGames(): Promise<LiveGame[]> {
+  const { data, error } = await supabase.from('games').select('*').order('id');
+  if (error) throw error;
+  return data as LiveGame[];
+}
+
+export async function loadMessages(): Promise<Message[]> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, game_id, lichess_id, username, ply, body, created_at')
+    .order('created_at', { ascending: false })
+    .limit(300);
+  if (error) throw error;
+  return (data as Message[]).reverse();
+}
+
+export async function loadTally(): Promise<Record<number, Partial<Record<Pick, number>>>> {
+  const { data, error } = await supabase.from('prediction_tally').select('*');
+  if (error) throw error;
+  const out: Record<number, Partial<Record<Pick, number>>> = {};
+  for (const r of data as { game_id: number; pick: Pick; votes: number }[]) (out[r.game_id] ??= {})[r.pick] = r.votes;
+  return out;
+}
+
+export async function loadLeaderboard(): Promise<{ username: string; points: number; correct: number }[]> {
+  const { data, error } = await supabase.from('leaderboard').select('*').limit(10);
+  if (error) throw error;
+  return data as { username: string; points: number; correct: number }[];
+}
+
+async function call<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+  const token = getToken();
+  if (!token) throw new Error('Log in with Lichess first.');
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, 'x-lichess-token': token },
+    body: JSON.stringify({ action, ...payload }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status}).`);
+  return body as T;
+}
+
+export const whoami = () => call<Me>('whoami');
+export const predict = (gameId: number, pick: Pick) => call('predict', { gameId, pick });
+export const post = (gameId: number | null, ply: number, body: string) => call('post', { gameId, ply, body });
+export const adminGame = (gameId: number, patch: Partial<LiveGame>) => call('admin_game', { gameId, patch });
+export const adminHide = (messageId: number) => call('admin_hide', { messageId });
+export const adminBan = (lichessId: string) => call('admin_ban', { lichessId });
