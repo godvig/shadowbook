@@ -12,7 +12,7 @@ Clients never get write access: the publishable key can only read what the polic
 
 ## Setup (dashboard, about ten minutes)
 
-1. **SQL Editor** → New query → paste the migration → Run.
+1. **SQL Editor** → New query → paste the migrations in order (`…match_hub`, `…broadcast_sync`, `…service_role_grants`) → Run each.
 2. **Edge Functions** → Deploy a new function → name it `match-api` → paste `functions/match-api/index.ts` → Deploy.
 3. In the function's settings, turn **off** "Verify JWT" (callers authenticate with a Lichess token, not a Supabase session).
 4. **Edge Functions → Secrets**: add
