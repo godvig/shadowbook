@@ -54,10 +54,10 @@
 
 .lv-picks { display: flex; flex-direction: column; gap: 10px; }
 .lv-pick { position: relative; overflow: hidden; min-height: 56px; border-radius: 10px; border: 1px solid var(--lv-line2); background: #121418; color: var(--lv-text); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; font: 600 17px var(--lv-sans); cursor: pointer; }
-.lv-pick .bar { position: absolute; left: 0; top: 0; bottom: 0; opacity: 0.25; transition: width 0.4s; }
-.lv-pick.gukesh .bar { background: var(--lv-gold); }
-.lv-pick.draw .bar { background: var(--lv-muted); }
-.lv-pick.sindarov .bar { background: var(--lv-blue); }
+.lv-pick .lv-bar { position: absolute; left: 0; top: 0; bottom: 0; opacity: 0.25; transition: width 0.4s; }
+.lv-pick.gukesh .lv-bar { background: var(--lv-gold); }
+.lv-pick.draw .lv-bar { background: var(--lv-muted); }
+.lv-pick.sindarov .lv-bar { background: var(--lv-blue); }
 .lv-pick .lbl, .lv-pick .mono { position: relative; }
 .lv-pick.mine { border: 2px solid var(--lv-gold); }
 .lv-pick:hover { border-color: var(--lv-text2); }
@@ -127,3 +127,9 @@
   .lv-boardcol { flex-basis: 100%; }
 }
 .lv-clock { display: inline-block; padding: 1px 8px; margin-right: 6px; border-radius: 4px; background: #121418; border: 1px solid var(--lv-line2); color: var(--lv-text); }
+.lv-share-open { align-self: flex-start; }
+.lv-share { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; padding: 12px; border: 1px solid var(--lv-line2); border-radius: 12px; background: #0f1115; }
+.lv-share img, .lv-share-ph { width: 200px; height: 200px; border-radius: 8px; flex: none; }
+.lv-share-ph { background: #1b1e24; }
+.lv-share-actions { flex: 1 1 200px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+.lv-called { border: 2px solid var(--lv-gold); background: linear-gradient(90deg, rgba(242, 181, 68, 0.12), var(--lv-panel) 60%); }
