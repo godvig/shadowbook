@@ -42,6 +42,10 @@ Requires Node 20+. `npm run build` produces a static site in `dist/` that can be
 - **Private by design** – everything runs in your browser. Games are cached locally in IndexedDB; nothing is sent to
   any server except the public chess.com/Lichess APIs.
 - **Works without an account** – chess.com and Lichess games are public, a PGN upload works for anything else.
+- **Spar like Gukesh or Sindarov** – two preset bots for the 2026 World Championship. Each opens with the moves the
+  player chose in their classical over-the-board games of 2024–2026, as often as they chose them, then hands over to
+  Maia3 at 2600: it opens like a world-class player, then plays like a strong human – not at world-champion strength.
+  From any game of the match you can "Spar this opening" from the move where it left the bot's book.
 
 ![Scouting report](docs/scouting.png)
 
@@ -72,11 +76,15 @@ src/
 - **Human-like play:** [maia3-js](https://www.npmjs.com/package/maia3-js) running the 5M-parameter Maia3 network with
   [ONNX Runtime Web](https://onnxruntime.ai/) (wasm). The 22 MB network is served from this site and cached by the browser.
 - **Stack:** React 19, TypeScript, Vite, deployed to GitHub Pages by GitHub Actions.
+- **Preset games:** the moves of published classical games from the official broadcasts relayed on
+  [Lichess](https://lichess.org/broadcast), read with the [Broadcast API](https://lichess.org/api#tag/broadcasts).
+  `npm run presets` rebuilds `public/presets/*.json` from the events in
+  [`scripts/presets.config.json`](scripts/presets.config.json); each file lists its source events. Run by hand, not in CI.
 
 ## Tests
 
 ```bash
-npm test           # Vitest: PGN parsing, book building, bot move selection
+npm test           # Vitest: PGN parsing, book building, bot move selection, presets
 npm run typecheck
 npm run lint
 ```
