@@ -12,6 +12,7 @@ import { NAMES, type LiveGame, type Me, type Message, type Pick, type SyncSettin
 import type { Color } from '../lib/types';
 import type { GameSettings } from './Game';
 import { canvasBlob, drawCard, loadCardFonts, shareText, shareUrl, xIntent, type CardData } from '../live/share';
+import { buildIcs, downloadIcs } from '../live/calendar';
 import '../live/live.css';
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
@@ -266,7 +267,10 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
 
       <div className="lv-pair">
         <section className="lv-card lv-games" aria-labelledby="lv-games-h">
-          <h2 id="lv-games-h">The games</h2>
+          <div className="lv-head">
+            <h2 id="lv-games-h">The games</h2>
+            <RemindButton games={games.filter((g) => g.status === 'scheduled')} label="Add all games to my calendar" file="shadowbook-world-championship.ics" />
+          </div>
           <div className="lv-scroll">
             <table>
               <thead>
@@ -361,6 +365,7 @@ function PredictCard({ loaded, game, tally, me, now, onPick }: { loaded: boolean
           </span>
         )}
       </div>
+      {game?.starts_at && isOpen(game, now) && <RemindButton games={[game]} label={`Remind me before ${game.label.toLowerCase()}`} file={`shadowbook-game-${game.id}.ics`} />}
       {game ? (
         <div className="lv-picks" role="group" aria-label="Your prediction">
           {PICKS.map(({ pick, label }) => (
@@ -833,5 +838,15 @@ function ShareCall({ data, label }: { data: CardData; label: string }) {
         </button>
       </div>
     </div>
+  );
+}
+
+function RemindButton({ games, label, file }: { games: LiveGame[]; label: string; file: string }) {
+  const ics = buildIcs(games, shareUrl(location.origin, import.meta.env.BASE_URL));
+  if (!ics) return null;
+  return (
+    <button className="lv-link lv-remind" onClick={() => downloadIcs(ics, file)}>
+      {label}
+    </button>
   );
 }
