@@ -7,10 +7,11 @@ import { availablePresets, bookExit, loadPreset, type PresetId } from '../lib/pr
 import { SourceError } from '../lib/sources';
 import * as api from '../live/api';
 import { completeLogin, getToken, isOAuthReturn, login, logout } from '../live/lichessAuth';
-import { clocksAt, countdown, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, winnerOf } from '../live/match';
+import { clocksAt, countdown, pointsFor, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, winnerOf } from '../live/match';
 import { NAMES, type LiveGame, type Me, type Message, type Pick, type SyncSettings } from '../live/types';
 import type { Color } from '../lib/types';
 import type { GameSettings } from './Game';
+import { canvasBlob, drawCard, loadCardFonts, shareText, shareUrl, xIntent, type CardData } from '../live/share';
 import '../live/live.css';
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
@@ -254,6 +255,8 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
         )}
       </div>
 
+      <CalledIt games={games} me={me} tally={tally} />
+
       <div className="lv-pair">
         <PredictCard loaded={loaded && !offline} game={next} tally={next ? tally[next.id] : undefined} me={me} now={now} onPick={(p) => guard(async () => { await api.predict(next!.id, p); await refreshMe(); refreshStats(); })} />
         <SparCard onScouted={onScouted} games={games} presets={presets} />
@@ -362,7 +365,7 @@ function PredictCard({ loaded, game, tally, me, now, onPick }: { loaded: boolean
         <div className="lv-picks" role="group" aria-label="Your prediction">
           {PICKS.map(({ pick, label }) => (
             <button key={pick} className={`lv-pick ${pick}${mine === pick ? ' mine' : ''}`} aria-pressed={mine === pick} onClick={() => onPick(pick)}>
-              <span className="bar" style={{ width: `${pct[pick]}%` }} aria-hidden="true" />
+              <span className="lv-bar" style={{ width: `${pct[pick]}%` }} aria-hidden="true" />
               <span className="lbl">
                 {label}
                 {mine === pick && ' · your call'}
@@ -374,6 +377,7 @@ function PredictCard({ loaded, game, tally, me, now, onPick }: { loaded: boolean
       ) : (
         <p className="lv-muted">{loaded ? 'The next game opens for predictions as soon as the current one ends.' : 'Call every game: Gukesh, draw or Sindarov. Voting opens when the match hub is online.'}</p>
       )}
+      {game && mine && <ShareCall data={{ game: game.id, pick: mine, pct }} label="Share your call" />}
       <p className="lv-muted">
         {total.toLocaleString()} predictions · Locks when the game starts. {me ? 'You can change your call until then.' : 'Log in with Lichess to vote.'}
       </p>
@@ -723,5 +727,111 @@ function SyncPanel({ guard }: { guard: (fn: () => Promise<unknown>) => Promise<u
       </p>
       {(sync?.last_error || result) && <p className="lv-notice">{sync?.last_error ? `Last error: ${sync.last_error}` : result}</p>}
     </section>
+  );
+}
+
+/** "You called game N": shown for the latest finished game the user got right. */
+function CalledIt({ games, me, tally }: { games: LiveGame[]; me: Me | null; tally: Record<number, Partial<Record<Pick, number>>> }) {
+  if (!me) return null;
+  const hit = [...games]
+    .reverse()
+    .find((g) => g.status === 'finished' && me.predictions.some((p) => p.game_id === g.id && p.pick === winnerOf(g)));
+  if (!hit) return null;
+  const pick = winnerOf(hit) as Pick;
+  const pct = percentages(tally[hit.id] ?? {});
+  const data: CardData = { game: hit.id, pick, pct, called: true, points: pointsFor(pick, pick, pct[pick] / 100) };
+  return (
+    <section className="lv-card lv-called" aria-labelledby="lv-called-h">
+      <h2 id="lv-called-h">You called game {hit.id}</h2>
+      <p className="lv-muted">
+        {pick === 'draw' ? 'A draw' : `${NAMES[pick]} won`}, just like you said. {pct[pick] < 34 ? `Only ${pct[pick]}% saw it coming.` : `${pct[pick]}% agreed with you.`}
+      </p>
+      <ShareCall data={data} label="Share it" />
+    </section>
+  );
+}
+
+function ShareCall({ data, label }: { data: CardData; label: string }) {
+  const [open, setOpen] = useState(false);
+  const [img, setImg] = useState<{ url: string; file: File } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const text = shareText(data);
+  const url = shareUrl(location.origin, import.meta.env.BASE_URL);
+  const key = `${data.game}-${data.pick}-${data.called ? 1 : 0}-${data.pct.gukesh}-${data.pct.draw}-${data.pct.sindarov}`;
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    let objectUrl = '';
+    (async () => {
+      await loadCardFonts();
+      const canvas = document.createElement('canvas');
+      drawCard(canvas, data);
+      const blob = await canvasBlob(canvas);
+      if (!blob || !alive) return;
+      objectUrl = URL.createObjectURL(blob);
+      setImg({ url: objectUrl, file: new File([blob], `shadowbook-game-${data.game}.png`, { type: 'image/png' }) });
+    })();
+    return () => {
+      alive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, key]);
+
+  const canShareFile = !!img && typeof navigator.canShare === 'function' && navigator.canShare({ files: [img.file] });
+  const canShare = typeof navigator.share === 'function';
+
+  async function nativeShare() {
+    try {
+      if (canShareFile && img) await navigator.share({ files: [img.file], text: `${text} ${url}` });
+      else await navigator.share({ text, url });
+    } catch {
+      /* the user closed the share sheet */
+    }
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked */
+    }
+  }
+
+  if (!open)
+    return (
+      <button className="lv-btn small ghost lv-share-open" onClick={() => setOpen(true)}>
+        {label}
+      </button>
+    );
+
+  return (
+    <div className="lv-share">
+      {img ? <img src={img.url} alt={text} width={1080} height={1080} /> : <div className="lv-share-ph" aria-hidden="true" />}
+      <div className="lv-share-actions">
+        {canShare && (
+          <button className="lv-btn small gold" onClick={nativeShare}>
+            Share
+          </button>
+        )}
+        <a className="lv-btn small ghost" href={xIntent(text, url)} target="_blank" rel="noopener noreferrer">
+          Post on X
+        </a>
+        <button className="lv-btn small ghost" onClick={copy}>
+          {copied ? 'Copied' : 'Copy text'}
+        </button>
+        {img && (
+          <a className="lv-btn small ghost" href={img.url} download={img.file.name}>
+            Download image
+          </a>
+        )}
+        <button className="lv-link" onClick={() => setOpen(false)}>
+          Close
+        </button>
+      </div>
+    </div>
   );
 }
