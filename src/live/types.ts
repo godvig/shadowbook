@@ -29,6 +29,7 @@ export interface Me {
   username: string;
   admin: boolean;
   predictions: { game_id: number; pick: Pick }[];
+  matchPick: Finalist | null;
 }
 
 export const NAMES: Record<Finalist, string> = { gukesh: 'Gukesh', sindarov: 'Sindarov' };

@@ -160,3 +160,22 @@
 .lv-counts { list-style: none; margin: 8px 0 0; padding: 0; }
 .lv-counts li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--lv-line); }
 @media (max-width: 560px) { .lv-crowd li { grid-template-columns: 32px 1fr; } .lv-crowd .res, .lv-crowd .verdict { grid-column: 2; } }
+.lv-btn.danger { background: #c94a3a; color: #fff; }
+.lv-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--lv-text); }
+.lv-line .mod .quiet { opacity: 0; }
+.lv-line:hover .mod .quiet, .lv-line .mod .quiet:focus-visible { opacity: 1; }
+@media (hover: none) { .lv-line .mod .quiet { opacity: 0.5; } }
+.lv-winner .lv-head .mono { font-size: 13px; color: var(--lv-text2); }
+.lv-winner-picks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lv-winner-pick { position: relative; min-height: 72px; border-radius: 12px; border: 1px solid var(--lv-line2); background: #121418; color: var(--lv-text); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; cursor: pointer; }
+.lv-winner-pick .name { font: 800 32px/1 var(--lv-display); text-transform: uppercase; }
+.lv-winner-pick.gukesh .name { color: var(--lv-gold); }
+.lv-winner-pick.sindarov .name { color: var(--lv-blue); }
+.lv-winner-pick.mine { border: 2px solid var(--lv-gold); }
+.lv-winner-pick.won { box-shadow: 0 0 0 3px rgba(242, 181, 68, 0.35); }
+.lv-winner-pick:disabled { cursor: default; opacity: 0.85; }
+.lv-winner-pick .tag { position: absolute; top: 6px; right: 10px; font: 600 11px var(--lv-mono); color: var(--lv-gold); text-transform: uppercase; }
+.lv-reports { list-style: none; margin: 0; padding: 0; }
+.lv-reports li { padding: 10px 0; border-top: 1px solid var(--lv-line); }
+.lv-report-actions { display: inline-flex; gap: 12px; margin-left: 8px; }
+.lv-admin select { width: 100%; }
