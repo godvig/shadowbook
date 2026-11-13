@@ -3,7 +3,7 @@ import { Board } from '../components/Board';
 import { sansToUcis } from '../lib/chess';
 import { MAIA_ELO_MAX } from '../lib/maia';
 import { demoOpponent, scout, type Opponent } from '../lib/opponent';
-import { bookExit, loadPreset, PRESET_IDS, type PresetId } from '../lib/presets';
+import { availablePresets, bookExit, loadPreset, type PresetId } from '../lib/presets';
 import { SourceError } from '../lib/sources';
 import * as api from '../live/api';
 import { completeLogin, getToken, isOAuthReturn, login, logout } from '../live/lichessAuth';
@@ -40,6 +40,11 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
   const [offline, setOffline] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState('');
+  const [presets, setPresets] = useState<PresetId[]>([]);
+
+  useEffect(() => {
+    availablePresets().then(setPresets);
+  }, []);
   const [sparRow, setSparRow] = useState<number | null>(null);
   const now = useNow();
 
@@ -251,7 +256,7 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
 
       <div className="lv-pair">
         <PredictCard loaded={loaded && !offline} game={next} tally={next ? tally[next.id] : undefined} me={me} now={now} onPick={(p) => guard(async () => { await api.predict(next!.id, p); await refreshMe(); refreshStats(); })} />
-        <SparCard onScouted={onScouted} games={games} />
+        <SparCard onScouted={onScouted} games={games} presets={presets} />
       </div>
 
       <LiveRoom games={games} live={live} messages={messages} me={me} onPost={(gid, ply, body) => guard(() => api.post(gid, ply, body))} onHide={(id) => guard(() => api.adminHide(id))} onBan={(id) => guard(() => api.adminBan(id))} />
@@ -286,7 +291,7 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
                       <td>{g.opening ?? '–'}</td>
                       <td className="mono">{top && top[1] ? `${top[0] === 'draw' ? 'Draw' : NAMES[top[0]]} ${top[1]}%` : '–'}</td>
                       <td>
-                        {g.status !== 'scheduled' && g.pgn && g.white && g.black ? (
+                        {g.status !== 'scheduled' && g.pgn && g.white && g.black && presets.includes(g.white) && presets.includes(g.black) ? (
                           sparRow === g.id ? (
                             <span className="lv-chips">
                               <button className="lv-chip-btn" onClick={() => sparOpening(g, 'w')} title={`You play White against ${NAMES[g.black]}’s bot`}>
@@ -375,7 +380,7 @@ function PredictCard({ loaded, game, tally, me, now, onPick }: { loaded: boolean
   );
 }
 
-function SparCard({ onScouted, games }: { onScouted: (o: Opponent) => void; games: LiveGame[] }) {
+function SparCard({ onScouted, games, presets }: { onScouted: (o: Opponent) => void; games: LiveGame[]; presets: PresetId[] }) {
   const [site, setSite] = useState<'chess.com' | 'lichess'>('chess.com');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState('');
@@ -433,7 +438,7 @@ function SparCard({ onScouted, games }: { onScouted: (o: Opponent) => void; game
         <button className="lv-chip-btn" onClick={() => onScouted(demoOpponent())}>
           the demo player
         </button>
-        {PRESET_IDS.map((id) => (
+        {presets.map((id) => (
           <button key={id} className="lv-chip-btn" disabled={!!busy} onClick={() => preset(id)}>
             {NAMES[id]}
           </button>
