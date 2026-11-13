@@ -52,6 +52,10 @@ export default function App() {
               setOpponent(o);
               setView({ name: 'report' });
             }}
+            onSpar={(o, settings, startUcis) => {
+              setOpponent(o);
+              start(settings, startUcis);
+            }}
           />
         )}
         {view.name === 'home' && (

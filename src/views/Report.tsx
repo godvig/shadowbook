@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
 import { choiceShares, scorePct, type LineStat } from '../lib/book';
 import { START_FEN, playUci, ucisToSanLine } from '../lib/chess';
+import { clampElo, MAIA_ELO_MAX, MAIA_ELO_MIN } from '../lib/maia';
 import { ratingFor, withTimeClasses, type Opponent } from '../lib/opponent';
 import type { Color, TimeClass } from '../lib/types';
 import type { GameSettings } from './Game';
@@ -74,7 +75,7 @@ export function Report({
   onBack: () => void;
 }) {
   const [you, setYou] = useState<Color | 'random'>('w');
-  const [elo, setElo] = useState(() => Math.round(ratingFor(opponent) / 50) * 50);
+  const [elo, setElo] = useState(() => (opponent.preset ? MAIA_ELO_MAX : clampElo(Math.round(ratingFor(opponent) / 50) * 50)));
   const [yourElo, setYourElo] = useState(1500);
   const [useBook, setUseBook] = useState(true);
 
@@ -83,7 +84,8 @@ export function Report({
   const ratings = Object.entries(book.ratings).filter(([tc]) => tc !== 'unknown');
   const afterE4 = afterMoves('e4');
   const afterD4 = afterMoves('d4');
-  const eloOptions = Array.from({ length: 41 }, (_, i) => 600 + i * 50);
+  const eloOptions = Array.from({ length: (MAIA_ELO_MAX - MAIA_ELO_MIN) / 50 + 1 }, (_, i) => MAIA_ELO_MIN + i * 50);
+  const preset = opponent.preset;
 
   return (
     <div className="split">
@@ -98,9 +100,10 @@ export function Report({
           <div style={{ flex: 1 }}>
             <h1 style={{ margin: 0 }}>{opponent.username}</h1>
             <p className="muted" style={{ margin: 0 }}>
-              {opponent.site === 'demo' ? 'Demo player (made-up games)' : opponent.site} · {opponent.games.length} games read
+              {opponent.site === 'demo' ? 'Demo player (made-up games)' : preset ? 'Classical over-the-board games' : opponent.site} · {opponent.games.length} games read
               {ratings.length > 0 && ' · ' + ratings.map(([tc, r]) => `${tc} ${r}`).join(' · ')}
             </p>
+            {preset && preset.matchGames > 0 && <p className="small muted" style={{ margin: 0 }}>Includes {preset.matchGames} games from this match.</p>}
           </div>
         </div>
 
@@ -149,6 +152,23 @@ export function Report({
           </p>
           <Lines lines={book.lines.b} />
         </div>
+
+        {preset && (
+          <div className="card">
+            <h2>Where the games come from</h2>
+            <p className="small muted">
+              {preset.meta.games} classical games ({preset.meta.asWhite} with White, {preset.meta.asBlack} with Black) from official broadcasts relayed on{' '}
+              <a href="https://lichess.org/broadcast">Lichess</a>. Rapid, blitz, Armageddon and tiebreak games are left out.
+            </p>
+            <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+              {preset.meta.sources.map((s) => (
+                <li key={s.url}>
+                  <a href={s.url}>{s.name}</a> <span className="muted">· {s.games}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <aside className="side">
@@ -196,6 +216,11 @@ export function Report({
           >
             Start sparring
           </button>
+          {preset && (
+            <p className="small muted" style={{ marginTop: 12, marginBottom: 0 }}>
+              Opens like {preset.meta.display}, then plays like a strong human – not at world-champion strength.
+            </p>
+          )}
           <p className="small muted" style={{ marginTop: 12, marginBottom: 0 }}>
             The first time the bot leaves the book it loads a 22 MB neural network. It is cached afterwards.
           </p>
