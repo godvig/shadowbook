@@ -123,7 +123,10 @@ Deno.serve(async (req) => {
     .upsert({ lichess_id: user.id, username: user.username }, { onConflict: 'lichess_id' })
     .select('banned')
     .single();
-  if (pErr) return reply(500, { error: 'Could not save your profile.' });
+  if (pErr) {
+    console.error('players upsert failed', pErr);
+    return reply(500, { error: `Could not save your profile (${pErr.code ?? 'db error'}).` });
+  }
   if (player.banned) return reply(403, { error: 'This account cannot post or vote here.' });
 
   const isAdmin = admins.has(user.id);
