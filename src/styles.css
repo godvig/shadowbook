@@ -145,3 +145,13 @@ cg-board square.check { background: radial-gradient(ellipse at center, rgba(255,
 .privacy li { margin: 6px 0; }
 .privacy a { color: var(--blue); }
 .privacy .link { background: none; border: 0; color: var(--blue); cursor: pointer; font: inherit; padding: 8px 0; min-height: 44px; }
+
+/* Crawlable text on the match pages (world-chess-championship-2026/, sv/schack-vm-2026/) */
+.seo-content { max-width: 880px; margin: 0 auto; padding: 8px 24px 48px; color: var(--muted); line-height: 1.6; font-size: 15px; }
+.seo-content h2 { color: var(--text); font-size: 20px; margin: 24px 0 8px; }
+.seo-content h3 { color: var(--text); font-size: 16px; margin: 20px 0 6px; }
+.seo-content h4 { color: var(--text); font-size: 15px; margin: 14px 0 2px; }
+.seo-content p { margin: 4px 0 10px; }
+.seo-content a { color: var(--blue); }
+.seo-content code { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+body:not([data-view='match']) .seo-content { display: none; }

@@ -13,7 +13,7 @@
     { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Match", "short_name": "Match", "url": "./#match", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Match", "short_name": "Match", "url": "/world-chess-championship-2026/", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
     { "name": "Spar", "short_name": "Spar", "url": "./", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
   ]
 }
