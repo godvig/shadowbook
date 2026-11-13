@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { API_URL, SUPABASE_KEY, SUPABASE_URL } from './config';
 import { getToken } from './lichessAuth';
-import type { LiveGame, Me, Message, Pick } from './types';
+import type { LiveGame, Me, Message, Pick, SyncSettings } from './types';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
 
@@ -35,6 +35,11 @@ export async function loadLeaderboard(): Promise<{ username: string; points: num
   return data as { username: string; points: number; correct: number }[];
 }
 
+export async function loadSync(): Promise<SyncSettings | null> {
+  const { data } = await supabase.from('sync_settings').select('broadcast_id, enabled, last_run, last_summary, last_error').eq('id', 1).maybeSingle();
+  return (data as SyncSettings | null) ?? null;
+}
+
 async function call<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
   const token = getToken();
   if (!token) throw new Error('Log in with Lichess first.');
@@ -54,3 +59,5 @@ export const post = (gameId: number | null, ply: number, body: string) => call('
 export const adminGame = (gameId: number, patch: Partial<LiveGame>) => call('admin_game', { gameId, patch });
 export const adminHide = (messageId: number) => call('admin_hide', { messageId });
 export const adminBan = (lichessId: string) => call('admin_ban', { lichessId });
+export const adminSyncSettings = (patch: { broadcast?: string; enabled?: boolean }) => call('admin_sync_settings', patch);
+export const adminSyncNow = () => call<{ summary: string }>('admin_sync_now');

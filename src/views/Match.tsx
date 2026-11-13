@@ -7,8 +7,8 @@ import { availablePresets, bookExit, loadPreset, type PresetId } from '../lib/pr
 import { SourceError } from '../lib/sources';
 import * as api from '../live/api';
 import { completeLogin, getToken, isOAuthReturn, login, logout } from '../live/lichessAuth';
-import { countdown, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, winnerOf } from '../live/match';
-import { NAMES, type LiveGame, type Me, type Message, type Pick } from '../live/types';
+import { clocksAt, countdown, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, winnerOf } from '../live/match';
+import { NAMES, type LiveGame, type Me, type Message, type Pick, type SyncSettings } from '../live/types';
 import type { Color } from '../lib/types';
 import type { GameSettings } from './Game';
 import '../live/live.css';
@@ -336,6 +336,7 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
         </section>
       </div>
 
+      {me?.admin && <SyncPanel guard={guard} />}
       {me?.admin && <AdminPanel games={games} onSave={(id, patch) => guard(() => api.adminGame(id, patch))} />}
 
       <p className="lv-foot">No money, only points. Be kind on the board. Not affiliated with FIDE.</p>
@@ -474,6 +475,7 @@ function LiveRoom({
   const [pinned, setPinned] = useState<number | null>(null);
   const ply = pinned ?? sans.length;
   const pos = positionAt(sans, ply);
+  const clocks = clocksAt(game?.pgn ?? '', ply);
   const [draft, setDraft] = useState('');
   const list = useRef<HTMLDivElement>(null);
   const shown = messages.filter((m) => m.game_id === active);
@@ -502,14 +504,18 @@ function LiveRoom({
           <>
             <div className="lv-player">
               <span className={game.black === 'gukesh' ? 'gold' : 'blue'}>{black}</span>
-              <span className="mono">{game.status === 'live' ? 'LIVE' : game.result ?? ''}</span>
+              <span className="mono">
+                {clocks.b && <span className="lv-clock">{clocks.b}</span>} {game.status === 'live' ? 'LIVE' : game.result ?? ''}
+              </span>
             </div>
             <div className="lv-board">
               <Board fen={pos.fen} orientation="w" movable={null} lastMove={pos.lastMove} />
             </div>
             <div className="lv-player">
               <span className={game.white === 'gukesh' ? 'gold' : 'blue'}>{white}</span>
-              <span className="mono">{moveLabel(sans, ply)}</span>
+              <span className="mono">
+                {clocks.w && <span className="lv-clock">{clocks.w}</span>} {moveLabel(sans, ply)}
+              </span>
             </div>
             <div className="lv-nav" role="group" aria-label="Move through the game">
               <button onClick={() => setPinned(0)} aria-label="First move">«</button>
@@ -659,6 +665,63 @@ function AdminPanel({ games, onSave }: { games: LiveGame[]; onSave: (id: number,
       <button className="lv-btn gold" onClick={() => onSave(id, form)}>
         Save {g.label}
       </button>
+    </section>
+  );
+}
+
+function SyncPanel({ guard }: { guard: (fn: () => Promise<unknown>) => Promise<unknown> }) {
+  const [sync, setSync] = useState<SyncSettings | null>(null);
+  const [link, setLink] = useState('');
+  const [result, setResult] = useState('');
+  const reload = useCallback(() => {
+    api.loadSync().then((s) => {
+      setSync(s);
+      if (s?.broadcast_id) setLink((l) => l || s.broadcast_id || '');
+    });
+  }, []);
+  useEffect(() => {
+    reload();
+    const t = setInterval(reload, 15_000);
+    return () => clearInterval(t);
+  }, [reload]);
+
+  return (
+    <section className="lv-card lv-admin" aria-labelledby="lv-sync-h">
+      <h2 id="lv-sync-h">Live sync from Lichess</h2>
+      <p className="lv-muted">
+        Paste the Lichess broadcast link for the match. Every 30 seconds the hub then copies start times, colours, moves, clocks and results from it.
+        You can still correct any game below; a game you mark finished is never reopened.
+      </p>
+      <div className="lv-form">
+        <label className="lv-input">
+          <span className="sr-only">Broadcast link</span>
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://lichess.org/broadcast/<name>/<id>" />
+        </label>
+        <button className="lv-btn small gold" onClick={() => guard(async () => { await api.adminSyncSettings({ broadcast: link }); reload(); })}>
+          Save link
+        </button>
+        <button
+          className="lv-btn small ghost"
+          aria-pressed={!!sync?.enabled}
+          onClick={() => guard(async () => { await api.adminSyncSettings({ enabled: !sync?.enabled }); reload(); })}
+        >
+          {sync?.enabled ? 'Sync is on – turn off' : 'Turn sync on'}
+        </button>
+        <button className="lv-btn small ghost" onClick={() => guard(async () => { setResult((await api.adminSyncNow()).summary); reload(); })}>
+          Sync now
+        </button>
+      </div>
+      <p className="mono lv-muted">
+        {sync ? (
+          <>
+            Broadcast: {sync.broadcast_id ?? 'none'} · {sync.enabled ? 'on' : 'off'} · last run {sync.last_run ? new Date(sync.last_run).toLocaleTimeString() : 'never'}
+            {sync.last_summary && ` · ${sync.last_summary}`}
+          </>
+        ) : (
+          'Sync table not found: run the broadcast_sync migration.'
+        )}
+      </p>
+      {(sync?.last_error || result) && <p className="lv-notice">{sync?.last_error ? `Last error: ${sync.last_error}` : result}</p>}
     </section>
   );
 }

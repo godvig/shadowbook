@@ -32,3 +32,11 @@ export interface Me {
 }
 
 export const NAMES: Record<Finalist, string> = { gukesh: 'Gukesh', sindarov: 'Sindarov' };
+
+export interface SyncSettings {
+  broadcast_id: string | null;
+  enabled: boolean;
+  last_run: string | null;
+  last_summary: string | null;
+  last_error: string | null;
+}

@@ -126,3 +126,4 @@
   .lv-hero h2 { font-size: 32px; }
   .lv-boardcol { flex-basis: 100%; }
 }
+.lv-clock { display: inline-block; padding: 1px 8px; margin-right: 6px; border-radius: 4px; background: #121418; border: 1px solid var(--lv-line2); color: var(--lv-text); }
