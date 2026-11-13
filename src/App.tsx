@@ -6,20 +6,22 @@ import { Debrief } from './views/Debrief';
 import type { Opponent } from './lib/opponent';
 import { Logo } from './components/Logo';
 import { Match } from './views/Match';
+import { Privacy } from './views/Privacy';
 import { isOAuthReturn } from './live/lichessAuth';
 
 type View =
   | { name: 'home' }
   | { name: 'match' }
+  | { name: 'privacy' }
   | { name: 'report' }
   | { name: 'game'; settings: GameSettings; startUcis: string[]; key: number }
   | { name: 'debrief'; settings: GameSettings; game: FinishedGame };
 
 export default function App() {
-  const [view, setViewRaw] = useState<View>(() => (location.hash === '#match' || isOAuthReturn() ? { name: 'match' } : { name: 'home' }));
+  const [view, setViewRaw] = useState<View>(() => (location.hash === '#privacy' ? { name: 'privacy' } : location.hash === '#match' || isOAuthReturn() ? { name: 'match' } : { name: 'home' }));
   const setView = (v: View) => {
     setViewRaw(v);
-    const hash = v.name === 'match' ? '#match' : '';
+    const hash = v.name === 'match' ? '#match' : v.name === 'privacy' ? '#privacy' : '';
     if (location.hash !== hash) history.replaceState(null, '', `${location.pathname}${location.search}${hash}`);
   };
   const [opponent, setOpponent] = useState<Opponent | null>(null);
@@ -46,8 +48,10 @@ export default function App() {
         <a className="gh" href="https://github.com/godvig/shadowbook">GitHub</a>
       </header>
       <main className="page">
+        {view.name === 'privacy' && <Privacy onBack={() => setView({ name: 'match' })} />}
         {view.name === 'match' && (
           <Match
+            onPrivacy={() => setView({ name: 'privacy' })}
             onScouted={(o) => {
               setOpponent(o);
               setView({ name: 'report' });

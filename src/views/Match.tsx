@@ -8,7 +8,7 @@ import { SourceError } from '../lib/sources';
 import * as api from '../live/api';
 import { completeLogin, getToken, isOAuthReturn, login, logout } from '../live/lichessAuth';
 import { clocksAt, countdown, pointsFor, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, winnerOf } from '../live/match';
-import { NAMES, type LiveGame, type Me, type Message, type Pick, type SyncSettings } from '../live/types';
+import { NAMES, type Finalist, type LiveGame, type Me, type Message, type Pick, type SyncSettings } from '../live/types';
 import type { Color } from '../lib/types';
 import type { GameSettings } from './Game';
 import { canvasBlob, drawCard, loadCardFonts, shareText, shareUrl, xIntent, type CardData } from '../live/share';
@@ -35,10 +35,13 @@ function useNow(ms = 1000) {
   return now;
 }
 
-export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void; onSpar: (o: Opponent, settings: GameSettings, startUcis: string[]) => void }) {
+export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponent) => void; onSpar: (o: Opponent, settings: GameSettings, startUcis: string[]) => void; onPrivacy: () => void }) {
   const [games, setGames] = useState<LiveGame[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [matchTally, setMatchTally] = useState<Partial<Record<Finalist, number>>>({});
+  const [matchWinner, setMatchWinner] = useState<Finalist | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [tally, setTally] = useState<Record<number, Partial<Record<Pick, number>>>>({});
   const [leaders, setLeaders] = useState<{ username: string; points: number; correct: number }[]>([]);
   const [me, setMe] = useState<Me | null>(null);
@@ -85,6 +88,8 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
 
   const refreshStats = useCallback(() => {
     api.loadTally().then(setTally).catch(() => {});
+    api.loadMatchTally().then(setMatchTally).catch(() => {});
+    api.loadMatchWinner().then(setMatchWinner).catch(() => {});
     api.loadLeaderboard().then(setLeaders).catch(() => {});
   }, []);
 
@@ -258,6 +263,48 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
             >
               Log out
             </button>
+            <button
+              className="lv-link"
+              onClick={() =>
+                guard(async () => {
+                  const data = await api.myData();
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+                  a.download = `shadowbook-${me.username}.json`;
+                  a.click();
+                  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+                })
+              }
+            >
+              Download my data
+            </button>
+            {confirmDelete ? (
+              <span className="lv-confirm">
+                Delete your profile, predictions, messages and reactions for good?{' '}
+                <button
+                  className="lv-btn small danger"
+                  onClick={() =>
+                    guard(async () => {
+                      await api.deleteMe();
+                      await logout();
+                      setMe(null);
+                      setConfirmDelete(false);
+                      setNotice('Your account and everything in it has been deleted.');
+                      refreshStats();
+                    })
+                  }
+                >
+                  Yes, delete
+                </button>{' '}
+                <button className="lv-link" onClick={() => setConfirmDelete(false)}>
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <button className="lv-link" onClick={() => setConfirmDelete(true)}>
+                Delete my account
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -265,7 +312,10 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
             <button className="lv-btn small gold" onClick={() => login()}>
               Log in with Lichess
             </button>{' '}
-            to predict and chat.
+            to predict and chat.{' '}
+            <button className="lv-link" onClick={onPrivacy}>
+              What we store
+            </button>
           </>
         )}
       </div>
@@ -277,11 +327,27 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
         <SparCard onScouted={onScouted} games={games} presets={presets} />
       </div>
 
+      <MatchWinnerCard
+        games={games}
+        tally={matchTally}
+        winner={matchWinner}
+        me={me}
+        now={now}
+        onPick={(p) =>
+          guard(async () => {
+            await api.predictMatch(p);
+            await refreshMe();
+            api.loadMatchTally().then(setMatchTally);
+          })
+        }
+      />
+
       <LiveRoom
         games={games}
         live={live}
         messages={messages}
         reactions={reactions}
+        onReport={(id) => guard(async () => { await api.report(id); setNotice('Thanks. The report was sent to the moderators.'); })}
         onReact={(id, glyph) =>
           guard(async () => {
             const { on } = await api.react(id, glyph);
@@ -375,10 +441,16 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
 
       <StatsSection games={games} tally={tally} me={me} />
 
+      {me?.admin && <ModerationPanel guard={guard} winner={matchWinner} onWinner={setMatchWinner} />}
       {me?.admin && <SyncPanel guard={guard} />}
       {me?.admin && <AdminPanel games={games} onSave={(id, patch) => guard(() => api.adminGame(id, patch))} />}
 
-      <p className="lv-foot">No money, only points. Be kind on the board. Not affiliated with FIDE.</p>
+      <p className="lv-foot">
+        No money, only points. Be kind on the board. Not affiliated with FIDE.{' '}
+        <button className="lv-link" onClick={onPrivacy}>
+          Privacy
+        </button>
+      </p>
     </div>
   );
 }
@@ -496,6 +568,7 @@ function LiveRoom({
   messages,
   reactions,
   onReact,
+  onReport,
   me,
   onPost,
   onHide,
@@ -506,6 +579,7 @@ function LiveRoom({
   messages: Message[];
   reactions: Reaction[];
   onReact: (messageId: number, glyph: Glyph) => void;
+  onReport: (messageId: number) => void;
   me: Me | null;
   onPost: (gameId: number | null, ply: number, body: string) => Promise<void>;
   onHide: (id: number) => void;
@@ -526,6 +600,7 @@ function LiveRoom({
   const shown = messages.filter((m) => m.game_id === active);
   const chips = useMemo(() => reactionsByMessage(reactions, me?.id), [reactions, me?.id]);
   const [picker, setPicker] = useState<number | null>(null);
+  const [reporting, setReporting] = useState<number | null>(null);
 
   useEffect(() => {
     const el = list.current;
@@ -659,6 +734,27 @@ function LiveRoom({
                   </span>
                 )}
               </span>
+              {me && m.lichess_id !== me.id && !me.admin && (
+                <span className="mod">
+                  {reporting === m.id ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          onReport(m.id);
+                          setReporting(null);
+                        }}
+                      >
+                        confirm report
+                      </button>
+                      <button onClick={() => setReporting(null)}>cancel</button>
+                    </>
+                  ) : (
+                    <button className="quiet" onClick={() => setReporting(m.id)} aria-label={`Report message from ${m.username}`}>
+                      report
+                    </button>
+                  )}
+                </span>
+              )}
               {me?.admin && (
                 <span className="mod">
                   <button onClick={() => onHide(m.id)}>hide</button>
@@ -994,6 +1090,109 @@ function StatsSection({ games, tally, me }: { games: LiveGame[]; tally: Record<n
           </ul>
         </div>
       </div>
+    </section>
+  );
+}
+
+function MatchWinnerCard({
+  games,
+  tally,
+  winner,
+  me,
+  now,
+  onPick,
+}: {
+  games: LiveGame[];
+  tally: Partial<Record<Finalist, number>>;
+  winner: Finalist | null;
+  me: Me | null;
+  now: number;
+  onPick: (p: Finalist) => void;
+}) {
+  const g1 = games.find((g) => g.id === 1);
+  const open = !!g1 && isOpen(g1, now);
+  const total = (tally.gukesh ?? 0) + (tally.sindarov ?? 0);
+  const pct = (p: Finalist) => (total ? Math.round((100 * (tally[p] ?? 0)) / total) : 0);
+  const mine = me?.matchPick ?? null;
+  return (
+    <section className="lv-card lv-winner" aria-labelledby="lv-winner-h">
+      <div className="lv-head">
+        <h2 id="lv-winner-h">{winner ? `${NAMES[winner]} is world champion` : 'Who wins the match?'}</h2>
+        <span className="mono">
+          {winner ? (mine ? (mine === winner ? 'you called it · +3 points' : 'not this time') : '') : open ? 'locks at game 1 · +3 points if right' : 'locked'}
+        </span>
+      </div>
+      <div className="lv-winner-picks" role="group" aria-label="Match winner">
+        {(['gukesh', 'sindarov'] as Finalist[]).map((p) => (
+          <button
+            key={p}
+            className={`lv-winner-pick ${p}${mine === p ? ' mine' : ''}${winner === p ? ' won' : ''}`}
+            aria-pressed={mine === p}
+            disabled={!open}
+            onClick={() => onPick(p)}
+          >
+            <span className="name">{NAMES[p]}</span>
+            <span className="mono">{pct(p)}%</span>
+            {mine === p && <span className="tag">your pick</span>}
+          </button>
+        ))}
+      </div>
+      <p className="lv-muted">
+        {total.toLocaleString()} {total === 1 ? 'pick' : 'picks'}. {open ? (me ? 'You can change your pick until game 1 starts.' : 'Log in with Lichess to pick.') : ''}
+      </p>
+    </section>
+  );
+}
+
+function ModerationPanel({ guard, winner, onWinner }: { guard: (fn: () => Promise<unknown>) => Promise<unknown>; winner: Finalist | null; onWinner: (w: Finalist | null) => void }) {
+  const [list, setList] = useState<api.ReportedMessage[] | null>(null);
+  const load = () => guard(async () => setList((await api.adminReports()).messages));
+  return (
+    <section className="lv-card lv-admin" aria-labelledby="lv-mod-h">
+      <h2 id="lv-mod-h">Moderation and result</h2>
+      <div className="lv-form">
+        <button className="lv-btn small ghost" onClick={load}>
+          {list ? 'Refresh reports' : 'Show reported messages'}
+        </button>
+        <label className="lv-input" style={{ flex: '0 1 280px' }}>
+          <span className="sr-only">Match winner</span>
+          <select
+            value={winner ?? ''}
+            onChange={(e) => {
+              const w = (e.target.value || null) as Finalist | null;
+              guard(async () => {
+                await api.adminMatchWinner(w);
+                onWinner(w);
+              });
+            }}
+          >
+            <option value="">Match winner: not decided</option>
+            <option value="gukesh">Match winner: Gukesh</option>
+            <option value="sindarov">Match winner: Sindarov</option>
+          </select>
+        </label>
+      </div>
+      {list && (list.length ? (
+        <ul className="lv-reports">
+          {list.map((m) => (
+            <li key={m.id}>
+              <span className="mono">{m.username}</span> <span>{m.body}</span>
+              <span className="lv-muted small">
+                {' '}
+                · {m.reports.length} {m.reports.length === 1 ? 'report' : 'reports'}
+                {m.hidden ? ' · hidden' : ''}
+              </span>
+              <span className="lv-report-actions">
+                {!m.hidden && <button className="lv-link" onClick={() => guard(async () => { await api.adminHide(m.id); await load(); })}>Hide</button>}
+                <button className="lv-link" onClick={() => guard(async () => { await api.adminDismiss(m.id); await load(); })}>{m.hidden ? 'Restore' : 'Dismiss'}</button>
+                <button className="lv-link" onClick={() => guard(async () => { await api.adminBan(m.lichess_id); await load(); })}>Ban {m.username}</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="lv-muted">No reports. Lovely crowd.</p>
+      ))}
     </section>
   );
 }

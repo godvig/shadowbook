@@ -134,7 +134,58 @@ Deno.serve(async (req) => {
   switch (body.action) {
     case 'whoami': {
       const { data } = await db.from('predictions').select('game_id, pick').eq('lichess_id', user.id);
-      return reply(200, { ...user, admin: isAdmin, predictions: data ?? [] });
+      const { data: mp } = await db.from('match_predictions').select('pick').eq('lichess_id', user.id).maybeSingle();
+      return reply(200, { ...user, admin: isAdmin, predictions: data ?? [], matchPick: mp?.pick ?? null });
+    }
+
+    case 'predict_match': {
+      const pick = String(body.pick);
+      if (pick !== 'gukesh' && pick !== 'sindarov') return reply(400, { error: 'Pick Gukesh or Sindarov.' });
+      const { data: g1 } = await db.from('games').select('status, starts_at').eq('id', 1).single();
+      const started = !g1 || g1.status !== 'scheduled' || (g1.starts_at && new Date(g1.starts_at).getTime() <= Date.now());
+      if (started) return reply(409, { error: 'The match winner pick locked when game 1 started.' });
+      const { error } = await db.from('match_predictions').upsert({ lichess_id: user.id, pick, created_at: new Date().toISOString() });
+      return error ? reply(500, { error: 'Could not save your pick.' }) : reply(200, { ok: true });
+    }
+
+    case 'report': {
+      const messageId = Number(body.messageId);
+      const reason = String(body.reason ?? '').trim().slice(0, 200) || null;
+      const { data: msg } = await db.from('messages').select('lichess_id').eq('id', messageId).maybeSingle();
+      if (!msg) return reply(404, { error: 'That message is gone.' });
+      if (msg.lichess_id === user.id) return reply(400, { error: 'You cannot report your own message.' });
+      const { error } = await db.from('reports').upsert({ message_id: messageId, lichess_id: user.id, reason });
+      if (error) return reply(500, { error: 'Could not send the report.' });
+      const { count } = await db.from('reports').select('*', { count: 'exact', head: true }).eq('message_id', messageId);
+      if ((count ?? 0) >= 3) await db.from('messages').update({ hidden: true }).eq('id', messageId);
+      return reply(200, { ok: true });
+    }
+
+    case 'my_data': {
+      const [predictions, matchPick, messages, reactions, reports] = await Promise.all([
+        db.from('predictions').select('game_id, pick, created_at').eq('lichess_id', user.id),
+        db.from('match_predictions').select('pick, created_at').eq('lichess_id', user.id),
+        db.from('messages').select('id, game_id, ply, body, hidden, created_at').eq('lichess_id', user.id),
+        db.from('reactions').select('message_id, glyph, created_at').eq('lichess_id', user.id),
+        db.from('reports').select('message_id, reason, created_at').eq('lichess_id', user.id),
+      ]);
+      const { data: profile } = await db.from('players').select('lichess_id, username, created_at').eq('lichess_id', user.id).single();
+      return reply(200, {
+        exportedAt: new Date().toISOString(),
+        profile,
+        predictions: predictions.data ?? [],
+        matchWinnerPick: matchPick.data ?? [],
+        messages: messages.data ?? [],
+        reactions: reactions.data ?? [],
+        reports: reports.data ?? [],
+      });
+    }
+
+    case 'delete_me': {
+      // Cascades to predictions, the match pick, messages, reactions and reports.
+      const { error } = await db.from('players').delete().eq('lichess_id', user.id);
+      tokenCache.delete(token!);
+      return error ? reply(500, { error: 'Could not delete your account. Try again.' }) : reply(200, { ok: true });
     }
 
     case 'predict': {
@@ -183,6 +234,33 @@ Deno.serve(async (req) => {
       for (const k of allowed) if (k in (body.patch as object)) patch[k] = (body.patch as Record<string, unknown>)[k] === '' ? null : (body.patch as Record<string, unknown>)[k];
       if (patch.pgn === null) patch.pgn = '';
       const { error } = await db.from('games').update(patch).eq('id', Number(body.gameId));
+      return error ? reply(400, { error: error.message }) : reply(200, { ok: true });
+    }
+
+    case 'admin_reports': {
+      if (!isAdmin) return reply(403, { error: 'Admins only.' });
+      const { data: reps } = await db.from('reports').select('message_id, reason, lichess_id, created_at').order('created_at', { ascending: false }).limit(200);
+      const ids = [...new Set((reps ?? []).map((r) => r.message_id))];
+      const { data: msgs } = ids.length ? await db.from('messages').select('id, username, lichess_id, body, hidden, game_id').in('id', ids) : { data: [] };
+      const out = (msgs ?? []).map((m) => ({
+        ...m,
+        reports: (reps ?? []).filter((r) => r.message_id === m.id).map((r) => ({ by: r.lichess_id, reason: r.reason })),
+      }));
+      return reply(200, { messages: out });
+    }
+
+    case 'admin_dismiss': {
+      if (!isAdmin) return reply(403, { error: 'Admins only.' });
+      const id = Number(body.messageId);
+      await db.from('reports').delete().eq('message_id', id);
+      const { error } = await db.from('messages').update({ hidden: false }).eq('id', id);
+      return error ? reply(400, { error: error.message }) : reply(200, { ok: true });
+    }
+
+    case 'admin_match_winner': {
+      if (!isAdmin) return reply(403, { error: 'Admins only.' });
+      const w = body.winner === 'gukesh' || body.winner === 'sindarov' ? body.winner : null;
+      const { error } = await db.from('match_info').update({ winner: w }).eq('id', 1);
       return error ? reply(400, { error: error.message }) : reply(200, { ok: true });
     }
 
