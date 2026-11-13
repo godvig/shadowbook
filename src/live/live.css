@@ -134,3 +134,15 @@
 .lv-share-actions { flex: 1 1 200px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
 .lv-called { border: 2px solid var(--lv-gold); background: linear-gradient(90deg, rgba(242, 181, 68, 0.12), var(--lv-panel) 60%); }
 .lv-remind { align-self: flex-start; padding: 0; font-size: 15px; }
+.lv-line.own .nick { color: var(--lv-blue-text); }
+.lv-line.own .nick::after { content: ' (you)'; color: var(--lv-muted); font-weight: 400; }
+.lv-line.mentioned { background: rgba(108, 180, 245, 0.1); border-left-color: var(--lv-blue); }
+.lv-line .at { color: var(--lv-blue-text); font-weight: 600; }
+.lv-line .at.me { color: var(--lv-gold-ink); background: var(--lv-gold); border-radius: 3px; padding: 0 3px; }
+.lv-line .chip { margin-left: 6px; min-height: 24px; padding: 0 7px; border-radius: 12px; border: 1px solid var(--lv-line2); background: #121418; color: var(--lv-text2); font: 600 12px var(--lv-mono); cursor: pointer; vertical-align: middle; }
+.lv-line .chip.mine { border-color: var(--lv-gold); color: var(--lv-gold); }
+.lv-line .chip.add { opacity: 0.45; }
+.lv-line:hover .chip.add, .lv-line .chip.add:focus-visible, .lv-line .chip.add[aria-expanded='true'] { opacity: 1; }
+.lv-line .picker { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: middle; }
+.lv-line .picker button { min-width: 36px; min-height: 32px; border-radius: 6px; border: 1px solid var(--lv-line2); background: #1b1e24; color: var(--lv-text); font: 600 14px var(--lv-mono); cursor: pointer; }
+.lv-line .picker button:hover { border-color: var(--lv-gold); }
