@@ -133,3 +133,4 @@
 .lv-share-ph { background: #1b1e24; }
 .lv-share-actions { flex: 1 1 200px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
 .lv-called { border: 2px solid var(--lv-gold); background: linear-gradient(90deg, rgba(242, 181, 68, 0.12), var(--lv-panel) 60%); }
+.lv-remind { align-self: flex-start; padding: 0; font-size: 15px; }
