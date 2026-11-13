@@ -117,3 +117,15 @@ export function bookExit(book: PlayerBook, botColor: Color, ucis: string[], cap 
   }
   return limit;
 }
+
+/** Which presets have their game data deployed (the JSON is built by hand and may be missing). */
+export async function availablePresets(): Promise<PresetId[]> {
+  const ok = await Promise.all(
+    PRESET_IDS.map((id) =>
+      fetch(`${import.meta.env.BASE_URL}presets/${id}.json`, { method: 'HEAD' })
+        .then((r) => r.ok && (r.headers.get('content-type') ?? '').includes('json'))
+        .catch(() => false),
+    ),
+  );
+  return PRESET_IDS.filter((_, i) => ok[i]);
+}
