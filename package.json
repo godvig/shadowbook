@@ -1,7 +1,7 @@
 {
   "name": "shadowbook",
   "version": "0.1.0",
-  "description": "Spar against a bot that plays the openings of a real person – your next opponent, or yourself.",
+  "description": "Spar against a bot that plays the openings of a real person \u2013 your next opponent, or yourself.",
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
@@ -12,7 +12,8 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test": "vitest run",
-    "presets": "node scripts/build-presets.mjs"
+    "presets": "node scripts/build-presets.mjs",
+    "function:bundle": "node scripts/bundle-function.mjs"
   },
   "dependencies": {
     "@lichess-org/chessground": "^10.1.1",

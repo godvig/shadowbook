@@ -5,3 +5,4 @@ public/models
 *.tsbuildinfo
 .DS_Store
 .env
+supabase/dist

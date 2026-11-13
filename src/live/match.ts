@@ -82,3 +82,21 @@ export function countdown(ms: number): string {
   const hms = [Math.floor((s % 86400) / 3600), Math.floor((s % 3600) / 60), s % 60].map((x) => String(x).padStart(2, '0')).join(':');
   return d ? `${d}d ${hms}` : hms;
 }
+
+/** Each side's clock ([%clk h:mm:ss]) after `ply` half-moves, as broadcast PGNs carry them. */
+export function clocksAt(pgn: string, ply: number): { w?: string; b?: string } {
+  const body = pgn.replace(/^\[.*\]\s*$/gm, '');
+  const out: { w?: string; b?: string } = {};
+  let n = 0;
+  for (const t of body.match(/\{[^}]*\}|[^\s{}]+/g) ?? []) {
+    if (t.startsWith('{')) {
+      const clk = t.match(/\[%clk\s+([\d:]+)/);
+      if (clk && n > 0 && n <= ply) out[n % 2 ? 'w' : 'b'] = clk[1].replace(/^0:/, '');
+    } else if (!/^\d+\.+$|^\d+\.+\S|^(1-0|0-1|1\/2-1\/2|\*)$|^\$\d+$/.test(t)) {
+      n++;
+    } else if (/^\d+\.+\S/.test(t)) {
+      n++; // "12.e4" written without a space
+    }
+  }
+  return out;
+}
