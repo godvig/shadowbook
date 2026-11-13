@@ -940,7 +940,7 @@ function ShareCall({ data, label }: { data: CardData; label: string }) {
   const [img, setImg] = useState<{ url: string; file: File } | null>(null);
   const [copied, setCopied] = useState(false);
   const text = shareText(data);
-  const url = shareUrl(location.origin, import.meta.env.BASE_URL);
+  const url = shareUrl(location.origin, location.pathname.startsWith('/sv/') ? 'sv' : 'en');
   const key = `${data.game}-${data.pick}-${data.called ? 1 : 0}-${data.pct.gukesh}-${data.pct.draw}-${data.pct.sindarov}`;
 
   useEffect(() => {
@@ -1021,7 +1021,7 @@ function ShareCall({ data, label }: { data: CardData; label: string }) {
 }
 
 function RemindButton({ games, label, file }: { games: LiveGame[]; label: string; file: string }) {
-  const ics = buildIcs(games, shareUrl(location.origin, import.meta.env.BASE_URL));
+  const ics = buildIcs(games, shareUrl(location.origin, location.pathname.startsWith('/sv/') ? 'sv' : 'en'));
   if (!ics) return null;
   return (
     <button className="lv-link lv-remind" onClick={() => downloadIcs(ics, file)}>

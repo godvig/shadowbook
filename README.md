@@ -52,6 +52,8 @@ Requires Node 20+. `npm run build` produces a static site in `dist/` that can be
 ### Shadowbook Live – the World Championship match hub
 
 A second tab built for Gukesh vs Sindarov (Geneva, 2026): a place to follow the match, call every game and talk about it.
+Live at [shadowbook.godvig.com/world-chess-championship-2026](https://shadowbook.godvig.com/world-chess-championship-2026/)
+(and [in Swedish](https://shadowbook.godvig.com/sv/schack-vm-2026/)), each a static, crawlable page with event structured data that the app mounts on.
 
 ![Match hub: score, predictions and sparring](docs/match-hub.png)
 

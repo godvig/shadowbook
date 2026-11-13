@@ -12,7 +12,8 @@ describe('share text', () => {
     expect(shareText({ game: 4, pick: 'draw', pct, called: true })).toBe('Called it: game 4 of Gukesh vs Sindarov ended in a draw, along with 44% of the crowd.');
   });
   it('builds links', () => {
-    expect(shareUrl('https://shadowbook.godvig.com', '/')).toBe('https://shadowbook.godvig.com/#match');
+    expect(shareUrl('https://shadowbook.godvig.com')).toBe('https://shadowbook.godvig.com/world-chess-championship-2026/');
+    expect(shareUrl('https://shadowbook.godvig.com', 'sv')).toBe('https://shadowbook.godvig.com/sv/schack-vm-2026/');
     expect(xIntent('Hi there', 'https://a.b/#match')).toBe('https://x.com/intent/post?text=Hi+there&url=https%3A%2F%2Fa.b%2F%23match');
   });
 });

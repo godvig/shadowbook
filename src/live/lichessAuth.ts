@@ -1,6 +1,7 @@
 // "Log in with Lichess": OAuth 2 authorization code flow with PKCE, entirely in the browser.
 // Lichess accepts public clients without registration, so there is no client secret.
 import { LICHESS, LICHESS_CLIENT_ID } from './config';
+import { MATCH_PATH } from './routes';
 
 const TOKEN_KEY = 'shadowbook.lichessToken';
 const PENDING_KEY = 'shadowbook.oauthPending';
@@ -55,7 +56,7 @@ export async function completeLogin(): Promise<string | null> {
   if (!state) return null;
   const pending = JSON.parse(sessionStorage.getItem(PENDING_KEY) ?? 'null') as { verifier: string; state: string } | null;
   sessionStorage.removeItem(PENDING_KEY);
-  history.replaceState(null, '', `${import.meta.env.BASE_URL}#match`);
+  history.replaceState(null, '', MATCH_PATH);
   if (!code || !pending || pending.state !== state) throw new Error('Lichess login was cancelled or expired. Try again.');
   const res = await fetch(`${LICHESS}/api/token`, {
     method: 'POST',

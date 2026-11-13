@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Home } from './views/Home';
 import { Report } from './views/Report';
 import { Game, type GameSettings, type FinishedGame } from './views/Game';
@@ -8,6 +8,7 @@ import { Logo } from './components/Logo';
 import { Match } from './views/Match';
 import { Privacy } from './views/Privacy';
 import { isOAuthReturn } from './live/lichessAuth';
+import { MATCH_PATH, isMatchPath } from './live/routes';
 
 type View =
   | { name: 'home' }
@@ -17,13 +18,49 @@ type View =
   | { name: 'game'; settings: GameSettings; startUcis: string[]; key: number }
   | { name: 'debrief'; settings: GameSettings; game: FinishedGame };
 
+function viewFromLocation(): View {
+  if (location.hash === '#privacy') return { name: 'privacy' };
+  if (isMatchPath(location.pathname) || location.hash === '#match' || isOAuthReturn()) return { name: 'match' };
+  return { name: 'home' };
+}
+
 export default function App() {
-  const [view, setViewRaw] = useState<View>(() => (location.hash === '#privacy' ? { name: 'privacy' } : location.hash === '#match' || isOAuthReturn() ? { name: 'match' } : { name: 'home' }));
+  const [view, setViewRaw] = useState<View>(() => viewFromLocation());
   const setView = (v: View) => {
     setViewRaw(v);
-    const hash = v.name === 'match' ? '#match' : v.name === 'privacy' ? '#privacy' : '';
-    if (location.hash !== hash) history.replaceState(null, '', `${location.pathname}${location.search}${hash}`);
+    // The match hub has its own address; everything else lives on the root, privacy as #privacy.
+    const onMatch = isMatchPath(location.pathname);
+    if (v.name === 'match') {
+      if (!onMatch) history.pushState(null, '', MATCH_PATH);
+    } else {
+      const target = v.name === 'privacy' ? '/#privacy' : '/';
+      if (onMatch) history.pushState(null, '', target);
+      else if (`${location.pathname}${location.hash}` !== target) history.replaceState(null, '', target);
+    }
   };
+
+  useEffect(() => {
+    // Old links (and the OAuth return) used /#match: move them to the real address.
+    if (!isMatchPath(location.pathname) && (location.hash === '#match' || isOAuthReturn())) {
+      history.replaceState(null, '', `${MATCH_PATH}${location.search}`);
+    }
+    const onPop = () => setViewRaw(viewFromLocation());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  useEffect(() => {
+    // The crawlable text on the match pages is only shown with the match view.
+    document.body.dataset.view = view.name;
+    document.title =
+      view.name === 'match'
+        ? location.pathname.startsWith('/sv/')
+          ? 'Schack-VM 2026: Gukesh mot Sindarov – tippa varje parti och chatta live | Shadowbook'
+          : 'Gukesh vs Sindarov: World Chess Championship 2026 predictions and live chat | Shadowbook'
+        : view.name === 'privacy'
+          ? 'Privacy | Shadowbook'
+          : 'Shadowbook – spar against the openings of a real player';
+  }, [view.name]);
   const [opponent, setOpponent] = useState<Opponent | null>(null);
 
   const start = (settings: GameSettings, startUcis: string[] = []) =>

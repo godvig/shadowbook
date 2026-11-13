@@ -1,5 +1,6 @@
 // Share cards for Shadowbook Live: a 1080×1080 image of your call (or "Called it" after the game),
 // drawn on a canvas in the browser, plus the text and links that go with it.
+import { MATCH_PATH, MATCH_PATH_SV } from './routes';
 import type { Pick } from './types';
 
 export const PAWN_PATH =
@@ -22,8 +23,8 @@ export interface CardData {
   points?: number;
 }
 
-export function shareUrl(origin: string, base: string): string {
-  return `${origin}${base}#match`;
+export function shareUrl(origin: string, lang: 'en' | 'sv' = 'en'): string {
+  return `${origin}${lang === 'sv' ? MATCH_PATH_SV : MATCH_PATH}`;
 }
 
 export function shareText(d: CardData): string {
