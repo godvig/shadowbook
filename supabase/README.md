@@ -16,7 +16,7 @@ Clients never get write access: the publishable key can only read what the polic
 3. In the function's settings, turn **off** "Verify JWT" (callers authenticate with a Lichess token, not a Supabase session).
 4. **Edge Functions → Secrets**: add
    - `ADMIN_LICHESS_IDS` – your Lichess username in lower case (comma-separated for more admins)
-   - `ALLOWED_ORIGINS` – `https://godvig.github.io,http://localhost:5173`
+   - `ALLOWED_ORIGINS` – `https://shadowbook.godvig.com,http://localhost:5173`
 
 With the CLI instead: `supabase db push` and `supabase functions deploy match-api --no-verify-jwt`.
 
