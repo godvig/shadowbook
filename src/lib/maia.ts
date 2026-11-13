@@ -4,6 +4,15 @@ import type { Maia3 } from 'maia3-js/web';
  * Maia3 is a neural network trained to predict the move a human of a given rating would play.
  * It is loaded lazily (~22 MB, cached by the browser) the first time the bot leaves the book.
  */
+/**
+ * The ratings the bot can be asked to play at. maia3-js accepts any selfElo and clamps it to 0–5000,
+ * but it learned from games of human players and a rating far above theirs is extrapolation, not
+ * extra strength. 2600 is the top of what we offer: a strong human, not a world champion.
+ */
+export const MAIA_ELO_MIN = 600;
+export const MAIA_ELO_MAX = 2600;
+export const clampElo = (elo: number) => Math.min(MAIA_ELO_MAX, Math.max(MAIA_ELO_MIN, elo));
+
 let instance: Promise<Maia3> | null = null;
 const listeners = new Set<(pct: number) => void>();
 

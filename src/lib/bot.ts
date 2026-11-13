@@ -1,5 +1,5 @@
 import { bookMoves, type PlayerBook } from './book';
-import { loadMaia } from './maia';
+import { clampElo, loadMaia } from './maia';
 import type { Color } from './types';
 
 export type BotMove =
@@ -48,8 +48,8 @@ export async function chooseMove(ctx: BotContext): Promise<BotMove> {
   const result = await maia.predict({
     fen: ctx.fen,
     priorMoves: ctx.history,
-    selfElo: ctx.elo,
-    oppoElo: ctx.opponentElo,
+    selfElo: clampElo(ctx.elo),
+    oppoElo: clampElo(ctx.opponentElo),
     temperature: 1,
     topP: 0.95,
     topK: 1,

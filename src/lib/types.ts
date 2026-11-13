@@ -1,5 +1,5 @@
 export type Color = 'w' | 'b';
-export type Site = 'chess.com' | 'lichess' | 'pgn' | 'demo';
+export type Site = 'chess.com' | 'lichess' | 'pgn' | 'demo' | 'preset';
 export type TimeClass = 'bullet' | 'blitz' | 'rapid' | 'classical' | 'daily' | 'unknown';
 export type Result = '1-0' | '0-1' | '1/2-1/2' | '*';
 
