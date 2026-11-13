@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { API_URL, SUPABASE_KEY, SUPABASE_URL } from './config';
 import { getToken } from './lichessAuth';
+import type { Reaction } from './chat';
 import type { LiveGame, Me, Message, Pick, SyncSettings } from './types';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
@@ -19,6 +20,12 @@ export async function loadMessages(): Promise<Message[]> {
     .limit(300);
   if (error) throw error;
   return (data as Message[]).reverse();
+}
+
+export async function loadReactions(): Promise<Reaction[]> {
+  const { data, error } = await supabase.from('reactions').select('message_id, lichess_id, glyph').order('created_at', { ascending: false }).limit(3000);
+  if (error) return [];
+  return data as Reaction[];
 }
 
 export async function loadTally(): Promise<Record<number, Partial<Record<Pick, number>>>> {
@@ -61,3 +68,4 @@ export const adminHide = (messageId: number) => call('admin_hide', { messageId }
 export const adminBan = (lichessId: string) => call('admin_ban', { lichessId });
 export const adminSyncSettings = (patch: { broadcast?: string; enabled?: boolean }) => call('admin_sync_settings', patch);
 export const adminSyncNow = () => call<{ summary: string }>('admin_sync_now');
+export const react = (messageId: number, glyph: string) => call<{ on: boolean }>('react', { messageId, glyph });

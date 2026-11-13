@@ -166,6 +166,16 @@ Deno.serve(async (req) => {
       return error ? reply(500, { error: 'Could not post your message.' }) : reply(200, { ok: true });
     }
 
+    case 'react': {
+      const messageId = Number(body.messageId);
+      const glyph = String(body.glyph);
+      if (!['!!', '!', '?', '??', '½'].includes(glyph)) return reply(400, { error: 'Unknown reaction.' });
+      const key = { message_id: messageId, lichess_id: user.id, glyph };
+      const { data: existing } = await db.from('reactions').select('glyph').match(key).maybeSingle();
+      const { error } = existing ? await db.from('reactions').delete().match(key) : await db.from('reactions').insert(key);
+      return error ? reply(400, { error: 'Could not save your reaction.' }) : reply(200, { ok: true, on: !existing });
+    }
+
     case 'admin_game': {
       if (!isAdmin) return reply(403, { error: 'Admins only.' });
       const allowed = ['white', 'black', 'starts_at', 'status', 'result', 'opening', 'pgn'];

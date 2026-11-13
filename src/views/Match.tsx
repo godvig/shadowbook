@@ -13,6 +13,7 @@ import type { Color } from '../lib/types';
 import type { GameSettings } from './Game';
 import { canvasBlob, drawCard, loadCardFonts, shareText, shareUrl, xIntent, type CardData } from '../live/share';
 import { buildIcs, downloadIcs } from '../live/calendar';
+import { GLYPHS, GLYPH_MEANING, mentions, reactionsByMessage, segments, type Glyph, type Reaction } from '../live/chat';
 import '../live/live.css';
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
@@ -36,6 +37,7 @@ function useNow(ms = 1000) {
 export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void; onSpar: (o: Opponent, settings: GameSettings, startUcis: string[]) => void }) {
   const [games, setGames] = useState<LiveGame[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
   const [tally, setTally] = useState<Record<number, Partial<Record<Pick, number>>>>({});
   const [leaders, setLeaders] = useState<{ username: string; points: number; correct: number }[]>([]);
   const [me, setMe] = useState<Me | null>(null);
@@ -95,6 +97,7 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
       })
       .catch(() => setOffline(true))
       .finally(() => setLoaded(true));
+    api.loadReactions().then(setReactions);
     refreshStats();
     const poll = setInterval(refreshStats, 20_000);
     const ch = api.supabase
@@ -106,6 +109,16 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => {
         setMessages((ms) => [...ms, p.new as Message].slice(-500));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reactions' }, (p) => {
+        setReactions((rs) => [...rs, p.new as Reaction]);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reactions' }, (p) => {
+        const o = p.old as Partial<Reaction>;
+        setReactions((rs) => {
+          const i = rs.findIndex((r) => r.message_id === o.message_id && r.lichess_id === o.lichess_id && r.glyph === o.glyph);
+          return i < 0 ? rs : [...rs.slice(0, i), ...rs.slice(i + 1)];
+        });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (p) => {
         const m = p.new as Message & { hidden: boolean };
@@ -263,7 +276,23 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
         <SparCard onScouted={onScouted} games={games} presets={presets} />
       </div>
 
-      <LiveRoom games={games} live={live} messages={messages} me={me} onPost={(gid, ply, body) => guard(() => api.post(gid, ply, body))} onHide={(id) => guard(() => api.adminHide(id))} onBan={(id) => guard(() => api.adminBan(id))} />
+      <LiveRoom
+        games={games}
+        live={live}
+        messages={messages}
+        reactions={reactions}
+        onReact={(id, glyph) =>
+          guard(async () => {
+            const { on } = await api.react(id, glyph);
+            // Optimistic for the reactor; realtime brings everyone else's.
+            setReactions((rs) => {
+              const mine = (r: Reaction) => r.message_id === id && r.lichess_id === me?.id && r.glyph === glyph;
+              if (on) return rs.some(mine) ? rs : [...rs, { message_id: id, lichess_id: me!.id, glyph }];
+              return rs.filter((r) => !mine(r));
+            });
+          })
+        }
+        me={me} onPost={(gid, ply, body) => guard(() => api.post(gid, ply, body))} onHide={(id) => guard(() => api.adminHide(id))} onBan={(id) => guard(() => api.adminBan(id))} />
 
       <div className="lv-pair">
         <section className="lv-card lv-games" aria-labelledby="lv-games-h">
@@ -462,6 +491,8 @@ function LiveRoom({
   games,
   live,
   messages,
+  reactions,
+  onReact,
   me,
   onPost,
   onHide,
@@ -470,6 +501,8 @@ function LiveRoom({
   games: LiveGame[];
   live: LiveGame | null;
   messages: Message[];
+  reactions: Reaction[];
+  onReact: (messageId: number, glyph: Glyph) => void;
   me: Me | null;
   onPost: (gameId: number | null, ply: number, body: string) => Promise<void>;
   onHide: (id: number) => void;
@@ -488,6 +521,8 @@ function LiveRoom({
   const [draft, setDraft] = useState('');
   const list = useRef<HTMLDivElement>(null);
   const shown = messages.filter((m) => m.game_id === active);
+  const chips = useMemo(() => reactionsByMessage(reactions, me?.id), [reactions, me?.id]);
+  const [picker, setPicker] = useState<number | null>(null);
 
   useEffect(() => {
     const el = list.current;
@@ -567,7 +602,10 @@ function LiveRoom({
         <div className="lv-lines" ref={list} aria-live="polite">
           {shown.length === 0 && <p className="lv-line sys">No messages yet. Say something smart about the opening.</p>}
           {shown.map((m) => (
-            <div key={m.id} className={`lv-line${m.ply === ply && game && pinned !== null ? ' hot' : ''}`}>
+            <div
+              key={m.id}
+              className={`lv-line${m.ply === ply && game && pinned !== null ? ' hot' : ''}${m.lichess_id === me?.id ? ' own' : ''}${m.lichess_id !== me?.id && mentions(m.body, me?.username) ? ' mentioned' : ''}`}
+            >
               {game && (
                 <button className="tag" onClick={() => setPinned(m.ply)} title="Show the board at this move">
                   {moveLabel(sans, m.ply)}
@@ -575,7 +613,49 @@ function LiveRoom({
               )}
               <span className="time">{new Date(m.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
               <span className="nick">{m.username}</span>
-              <span className="text">{m.body}</span>
+              <span className="text">
+                {segments(m.body).map((seg, i) =>
+                  seg.mention ? (
+                    <strong key={i} className={seg.mention === me?.username.toLowerCase() ? 'at me' : 'at'}>
+                      {seg.text}
+                    </strong>
+                  ) : (
+                    <span key={i}>{seg.text}</span>
+                  ),
+                )}
+                {(chips.get(m.id) ?? []).map((c) => (
+                  <button
+                    key={c.glyph}
+                    className={`chip${c.mine ? ' mine' : ''}`}
+                    aria-pressed={c.mine}
+                    aria-label={`${GLYPH_MEANING[c.glyph]}: ${c.count}`}
+                    title={GLYPH_MEANING[c.glyph]}
+                    onClick={() => onReact(m.id, c.glyph)}
+                  >
+                    {c.glyph} {c.count}
+                  </button>
+                ))}
+                <button className="chip add" aria-label="React" aria-expanded={picker === m.id} onClick={() => setPicker(picker === m.id ? null : m.id)}>
+                  +
+                </button>
+                {picker === m.id && (
+                  <span className="picker" role="group" aria-label="Pick a reaction">
+                    {GLYPHS.map((g) => (
+                      <button
+                        key={g}
+                        title={GLYPH_MEANING[g]}
+                        aria-label={GLYPH_MEANING[g]}
+                        onClick={() => {
+                          onReact(m.id, g);
+                          setPicker(null);
+                        }}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </span>
+                )}
+              </span>
               {me?.admin && (
                 <span className="mod">
                   <button onClick={() => onHide(m.id)}>hide</button>
