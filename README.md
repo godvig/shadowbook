@@ -49,13 +49,26 @@ Requires Node 20+. `npm run build` produces a static site in `dist/` that can be
 
 ![Scouting report](docs/scouting.png)
 
-### Shadowbook Live (match tab)
+### Shadowbook Live – the World Championship match hub
 
-A hub for the 2026 World Championship match: live score, a prediction for every game with a leaderboard, and a chat
-where every message is pinned to the move it was written at, so clicking it shows the board at that moment.
-Anyone can follow along; voting and posting use "Log in with Lichess" (OAuth PKCE, no password ever touches the site).
-Backend: Supabase (Postgres with row level security, realtime, one Edge Function as the only write path).
-Setup notes in [`supabase/README.md`](supabase/README.md).
+A second tab built for Gukesh vs Sindarov (Geneva, 2026): a place to follow the match, call every game and talk about it.
+
+![Match hub: score, predictions and sparring](docs/match-hub.png)
+
+- **Predict every game** – Gukesh, draw or Sindarov. Calls lock when the game starts; a correct call scores a point,
+  two if fewer than a third of voters saw it coming. A leaderboard ranks the best predictors.
+- **A board that follows the game** – moves, clocks and results sync from the official Lichess broadcast every 30 seconds.
+- **Chat pinned to moves** – every message is tagged with the move it was written at; click the tag to see the board at that
+  moment. React with annotation glyphs (`!!` `!` `?` `??` `½`) and `@mention` other players.
+- **Share cards** – a 1080×1080 image of your call, or "Called it" after the game, plus link previews for the site.
+- **Match stats** – results, how often the crowd was right, openings and first moves, and your own record.
+- **Calendar reminders** – an `.ics` file with an alarm 30 minutes before each game locks.
+- **Spar the opening** – jump from the match straight into a sparring game against anyone.
+
+![Live board and chat pinned to moves](docs/match-board.png)
+
+*Screenshots use sample data.* Anyone can follow along; predicting and chatting use "Log in with Lichess"
+(OAuth PKCE – no password ever touches the site).
 
 ## Architecture
 
@@ -67,8 +80,12 @@ src/
     bot.ts       book move (weighted by frequency) → otherwise Maia3 sampled at the player's rating
     review.ts    debrief: Maia3's value head scores each of your moves at your rating
     storage.ts   IndexedDB cache of scouted players
-  views/         Home → Report → Game → Debrief
+  live/          the match hub: Lichess login (PKCE), Supabase client, match logic, chat, stats, share cards, calendar
+  views/         Home → Report → Game → Debrief, and Match
   components/    Board (Lichess' Chessground)
+supabase/
+  migrations/    Postgres schema with row level security, realtime, a pg_cron job for the broadcast sync
+  functions/     match-api: the only write path – verifies Lichess tokens, saves votes, posts and reactions, syncs the broadcast
 ```
 
 - **Moves and rules:** [chess.js](https://github.com/jhlywa/chess.js)
@@ -76,6 +93,9 @@ src/
 - **Human-like play:** [maia3-js](https://www.npmjs.com/package/maia3-js) running the 5M-parameter Maia3 network with
   [ONNX Runtime Web](https://onnxruntime.ai/) (wasm). The 22 MB network is served from this site and cached by the browser.
 - **Stack:** React 19, TypeScript, Vite, deployed to GitHub Pages by GitHub Actions.
+- **Match hub backend:** [Supabase](https://supabase.com/) – Postgres with row level security (the browser can only read),
+  realtime subscriptions, one Edge Function as the only write path, and a pg_cron job that pulls the
+  [Lichess broadcast](https://lichess.org/api#tag/broadcasts). Setup in [`supabase/README.md`](supabase/README.md).
 - **Preset games:** the moves of published classical games from the official broadcasts relayed on
   [Lichess](https://lichess.org/broadcast), read with the [Broadcast API](https://lichess.org/api#tag/broadcasts).
   `npm run presets` rebuilds `public/presets/*.json` from the events in
@@ -84,7 +104,8 @@ src/
 ## Tests
 
 ```bash
-npm test           # Vitest: PGN parsing, book building, bot move selection, presets
+npm test           # Vitest: PGN parsing, book building, bot move selection, presets, match logic,
+                   # broadcast sync, chat, stats, share cards, calendar files
 npm run typecheck
 npm run lint
 ```
@@ -94,6 +115,7 @@ CI runs all three on every push.
 ## Roadmap
 
 - [x] Spar any chess.com / Lichess player, scouting report, debrief
+- [x] World Championship match hub: predictions, live board, chat pinned to moves, share cards
 - [ ] Your own repertoire with spaced-repetition review (FSRS) – positions, not lines
 - [ ] "Where your book meets theirs": compare your repertoire with an opponent's games before the game
 - [ ] Turn debrief findings into review cards automatically
