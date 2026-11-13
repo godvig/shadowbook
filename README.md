@@ -121,7 +121,8 @@ CI runs all three on every push.
 - [ ] Turn debrief findings into review cards automatically
 - [ ] Clocks and premoves
 - [ ] Stockfish analysis next to Maia in the debrief
-- [ ] Installable PWA, offline support
+- [x] Installable app (PWA) with shortcuts to Match and Spar
+- [ ] Offline sparring with the cached Maia model
 
 ## License
 
