@@ -13,6 +13,7 @@ import type { Color } from '../lib/types';
 import type { GameSettings } from './Game';
 import { canvasBlob, drawCard, loadCardFonts, shareText, shareUrl, xIntent, type CardData } from '../live/share';
 import { buildIcs, downloadIcs } from '../live/calendar';
+import { matchStats } from '../live/stats';
 import { GLYPHS, GLYPH_MEANING, mentions, reactionsByMessage, segments, type Glyph, type Reaction } from '../live/chat';
 import '../live/live.css';
 
@@ -371,6 +372,8 @@ export function Match({ onScouted, onSpar }: { onScouted: (o: Opponent) => void;
           )}
         </section>
       </div>
+
+      <StatsSection games={games} tally={tally} me={me} />
 
       {me?.admin && <SyncPanel guard={guard} />}
       {me?.admin && <AdminPanel games={games} onSave={(id, patch) => guard(() => api.adminGame(id, patch))} />}
@@ -928,5 +931,69 @@ function RemindButton({ games, label, file }: { games: LiveGame[]; label: string
     <button className="lv-link lv-remind" onClick={() => downloadIcs(ics, file)}>
       {label}
     </button>
+  );
+}
+
+function StatsSection({ games, tally, me }: { games: LiveGame[]; tally: Record<number, Partial<Record<Pick, number>>>; me: Me | null }) {
+  const st = useMemo(() => matchStats(games, tally, me?.predictions), [games, tally, me]);
+  if (!st.played)
+    return (
+      <section className="lv-card lv-stats" aria-labelledby="lv-stats-h">
+        <h2 id="lv-stats-h">Match stats</h2>
+        <p className="lv-muted">Results, openings and how often the crowd got it right appear here after game 1.</p>
+      </section>
+    );
+  const tiles = [
+    { label: 'Results', value: `${st.results.gukesh}–${st.results.draw}–${st.results.sindarov}`, note: 'Gukesh wins · draws · Sindarov wins' },
+    { label: 'Crowd was right', value: `${st.crowdRight} of ${st.crowdCalls}`, note: 'games where the most picked call came true' },
+    { label: 'Average length', value: st.avgMoves ? `${st.avgMoves} moves` : '–', note: `over ${st.played} ${st.played === 1 ? 'game' : 'games'}` },
+    me && st.me
+      ? { label: 'Your record', value: `${st.me.correct} of ${st.me.calls}`, note: `${st.me.points} ${st.me.points === 1 ? 'point' : 'points'} so far` }
+      : { label: 'Your record', value: '–', note: 'log in and predict to track it' },
+  ];
+  return (
+    <section className="lv-card lv-stats" aria-labelledby="lv-stats-h">
+      <h2 id="lv-stats-h">Match stats</h2>
+      <div className="lv-tiles">
+        {tiles.map((t) => (
+          <div key={t.label} className="lv-tile">
+            <span className="lv-muted">{t.label}</span>
+            <strong>{t.value}</strong>
+            <span className="lv-muted small">{t.note}</span>
+          </div>
+        ))}
+      </div>
+
+      <h3>Crowd calls, game by game</h3>
+      <ol className="lv-crowd">
+        {st.games.map((g) => (
+          <li key={g.id}>
+            <span className="mono">G{g.id}</span>
+            <span className="lv-split" role="img" aria-label={`Gukesh ${g.pct.gukesh}%, draw ${g.pct.draw}%, Sindarov ${g.pct.sindarov}%`}>
+              <span className="g" style={{ width: `${g.pct.gukesh}%` }} />
+              <span className="d" style={{ width: `${g.pct.draw}%` }} />
+              <span className="s" style={{ width: `${g.pct.sindarov}%` }} />
+            </span>
+            <span className={`res ${g.winner}`}>{g.winner === 'draw' ? 'Draw' : `${NAMES[g.winner]} won`}</span>
+            <span className={`mono verdict${g.crowd && !g.crowdRight ? '' : ' ok'}`}>{g.crowd ? (g.crowdRight ? 'crowd right' : 'upset') : g.pct.gukesh + g.pct.draw + g.pct.sindarov ? 'split' : 'no votes'}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="lv-pair">
+        <div>
+          <h3>Openings</h3>
+          <ul className="lv-counts">
+            {st.openings.length ? st.openings.map((o) => <li key={o.name}><span>{o.name}</span><span className="mono">{o.count}</span></li>) : <li className="lv-muted">No names yet</li>}
+          </ul>
+        </div>
+        <div>
+          <h3>First moves</h3>
+          <ul className="lv-counts">
+            {st.firstMoves.length ? st.firstMoves.map((f) => <li key={f.move}><span className="mono">{f.move}</span><span className="mono">{f.count}</span></li>) : <li className="lv-muted">No moves yet</li>}
+          </ul>
+        </div>
+      </div>
+    </section>
   );
 }
