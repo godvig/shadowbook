@@ -14,7 +14,7 @@ rehearse the games you are actually going to get, find out where your preparatio
 
 ## Live demo
 
-**[godvig.github.io/shadowbook](https://godvig.github.io/shadowbook/)** – no account needed. Scout any public
+**[shadowbook.godvig.com](https://shadowbook.godvig.com/)** – no account needed. Scout any public
 player, or spar the built-in demo player *BishopBjörn* (a made-up 1540 with a weakness for the Fried Liver).
 
 ## Quick start
@@ -23,7 +23,7 @@ player, or spar the built-in demo player *BishopBjörn* (a made-up 1540 with a w
 git clone https://github.com/godvig/shadowbook.git
 cd shadowbook
 npm install
-npm run dev        # http://localhost:5173/shadowbook/
+npm run dev        # http://localhost:5173/
 ```
 
 Requires Node 20+. `npm run build` produces a static site in `dist/` that can be hosted anywhere.

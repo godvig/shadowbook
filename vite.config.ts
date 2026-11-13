@@ -1,9 +1,9 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-// Served from https://godvig.github.io/shadowbook/ in production.
+// Served from https://shadowbook.godvig.com/ in production.
 export default defineConfig({
-  base: '/shadowbook/',
+  base: '/',
   plugins: [react()],
   resolve: {
     // maia3-js imports the full onnxruntime-web build; we only need the CPU/wasm backend.
