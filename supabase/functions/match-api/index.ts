@@ -11,7 +11,7 @@ const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
   auth: { persistSession: false },
 });
 const admins = new Set((Deno.env.get('ADMIN_LICHESS_IDS') ?? '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean));
-const origins = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://godvig.github.io,http://localhost:5173').split(',').map((s) => s.trim());
+const origins = (Deno.env.get('ALLOWED_ORIGINS') ?? 'https://shadowbook.godvig.com,https://godvig.github.io,http://localhost:5173').split(',').map((s) => s.trim());
 
 const PICKS = ['gukesh', 'draw', 'sindarov'];
 const POST_GAP_MS = 4000;
