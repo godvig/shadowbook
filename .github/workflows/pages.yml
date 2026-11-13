@@ -1,6 +1,6 @@
 name: Deploy to GitHub Pages
 
-# Builds the app and publishes it to https://godvig.github.io/shadowbook/
+# Builds the app and publishes it to https://shadowbook.godvig.com/
 # One-time setup: Settings → Pages → Source: "GitHub Actions".
 on:
   push:
