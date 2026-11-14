@@ -19,7 +19,8 @@ export function Privacy({ onBack }: { onBack: () => void }) {
 
       <h2>Who runs this</h2>
       <p>
-        Shadowbook is an open source project by Adam Englund. Questions and requests:{' '}
+        Shadowbook is an open source project by Adam Englund. Questions and data requests:{' '}
+        <a href="mailto:adamenglund@godvig.com">adamenglund@godvig.com</a>, or{' '}
         <a href="https://github.com/godvig/shadowbook/issues">open an issue on GitHub</a>.
       </p>
 
@@ -48,8 +49,10 @@ export function Privacy({ onBack }: { onBack: () => void }) {
           players hide a message, and an admin can hide messages or block accounts that break the rules.
         </li>
         <li>
-          <strong>How long:</strong> until you delete your account. After the match the data may be removed or kept as an archive of the event; if that
-          changes, this page will say so.
+          <strong>How long:</strong> until you delete your account, or until it has not been used for three months, whichever comes first. Every visit
+          while logged in resets that clock. Nothing is removed for inactivity before 31 March 2027, so the match stays readable as an archive until
+          then. Removing an account removes its predictions, messages, reactions and reports with it; only anonymous totals (such as how many
+          people called a draw) are kept.
         </li>
       </ul>
 

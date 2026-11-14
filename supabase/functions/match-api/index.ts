@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
 
   const { data: player, error: pErr } = await db
     .from('players')
-    .upsert({ lichess_id: user.id, username: user.username }, { onConflict: 'lichess_id' })
+    .upsert({ lichess_id: user.id, username: user.username, last_seen: new Date().toISOString() }, { onConflict: 'lichess_id' })
     .select('banned')
     .single();
   if (pErr) {
