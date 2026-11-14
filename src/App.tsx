@@ -7,7 +7,7 @@ import type { Opponent } from './lib/opponent';
 import { Logo } from './components/Logo';
 import { Match } from './views/Match';
 import { Privacy } from './views/Privacy';
-import { Library } from './views/Library';
+import { Library, type LibraryStart } from './views/Library';
 import { isOAuthReturn } from './live/lichessAuth';
 import { MATCH_PATH, isMatchPath } from './live/routes';
 
@@ -15,7 +15,7 @@ type View =
   | { name: 'home' }
   | { name: 'match' }
   | { name: 'privacy' }
-  | { name: 'library' }
+  | { name: 'library'; start?: LibraryStart; key?: number }
   | { name: 'report' }
   | { name: 'game'; settings: GameSettings; startUcis: string[]; key: number }
   | { name: 'debrief'; settings: GameSettings; game: FinishedGame };
@@ -94,7 +94,7 @@ export default function App() {
         <a className="gh" href="https://github.com/godvig/shadowbook">GitHub</a>
       </header>
       <main className="page">
-        {view.name === 'library' && <Library />}
+        {view.name === 'library' && <Library key={view.key} opponent={opponent} start={view.start} />}
         {view.name === 'privacy' && <Privacy onBack={() => setView({ name: 'match' })} />}
         {view.name === 'match' && (
           <Match
@@ -118,7 +118,13 @@ export default function App() {
           />
         )}
         {view.name === 'report' && opponent && (
-          <Report opponent={opponent} onChange={setOpponent} onStart={(s) => start(s)} onBack={() => setView({ name: 'home' })} />
+          <Report
+            opponent={opponent}
+            onChange={setOpponent}
+            onStart={(s) => start(s)}
+            onBack={() => setView({ name: 'home' })}
+            onLibrary={(st) => setView({ name: 'library', start: st, key: Date.now() })}
+          />
         )}
         {view.name === 'game' && opponent && (
           <Game
