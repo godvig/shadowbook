@@ -1,0 +1,22 @@
+# Keeps the Supabase free-tier project from pausing for inactivity: one small public read twice a week.
+# Uses only the publishable key, which is already public in the site's code.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '23 6 * * 1,4'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one row through the Data API
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' \
+            'https://axpcobcbzetbcyvuugah.supabase.co/rest/v1/games?select=id&limit=1' \
+            -H 'apikey: sb_publishable_PLCSvm_nDzQKsD1OkzxfwQ_dpjl8f7y')
+          echo "Supabase answered $status"
+          test "$status" = "200"
