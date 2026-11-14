@@ -9,6 +9,9 @@ import { addMove, entryId, importPgn, isNew, makeMain, positionAfter, queue, rem
 import * as store from '../rep/store';
 import { meet, prepQueue } from '../rep/meet';
 import { MeetPanel } from '../rep/MeetPanel';
+import { RepTree } from '../rep/RepTree';
+import { buildTree } from '../rep/tree';
+import { fetchStudy, type Chapter } from '../rep/lichessStudy';
 import type { Opponent } from '../lib/opponent';
 import '../rep/rep.css';
 
@@ -102,6 +105,29 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
             persist(changed);
             return res;
           }}
+          onImportStudy={(chapters) => {
+            const copy = new Map(entries);
+            const per = { w: 0, b: 0 };
+            let moves = 0;
+            let skipped = 0;
+            for (const ch of chapters) {
+              if (!ch.fromStart) {
+                skipped++;
+                continue;
+              }
+              const c = ch.orientation ?? color;
+              const r = importPgn(copy, ch.pgn, c);
+              moves += r.moves;
+              per[c]++;
+            }
+            persist([...copy.values()].filter((e) => entries.get(e.id) !== e));
+            return { per, moves, skipped };
+          }}
+          color={color}
+          onOpen={(line) => {
+            setBuildFrom(line);
+            setMode('build');
+          }}
           all={entries}
           onRestore={(rows) => persist(rows)}
           onClear={() => {
@@ -158,6 +184,9 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
 
 function Overview(props: {
   entries: RepEntry[];
+  color: Color;
+  onImportStudy(chapters: Chapter[]): { per: Record<Color, number>; moves: number; skipped: number };
+  onOpen(line: string[]): void;
   all: Map<string, RepEntry>;
   due: number;
   fresh: number;
@@ -169,6 +198,10 @@ function Overview(props: {
 }) {
   const [pgn, setPgn] = useState('');
   const [note, setNote] = useState('');
+  const [study, setStudy] = useState('');
+  const [studyNote, setStudyNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const tree = useMemo(() => buildTree(props.entries, props.color), [props.entries, props.color]);
   const file = useRef<HTMLInputElement>(null);
   const total = props.entries.length;
   const learned = props.entries.filter((e) => !isNew(e)).length;
@@ -187,6 +220,44 @@ function Overview(props: {
           </button>
           <button className="btn" onClick={props.onBuild}>Add moves on the board</button>
         </div>
+      </div>
+
+      <div className="card">
+        <h2>Your repertoire as {props.color === 'w' ? 'White' : 'Black'}</h2>
+        <p className="rep-legend">
+          <span><b>Bold</b> = your move, <i style={{ all: 'unset', fontStyle: 'italic' }}>italic</i> = also accepted</span>
+          <span><i style={{ background: '#8a90a0' }} />new</span>
+          <span><i style={{ background: '#ff8a80' }} />due</span>
+          <span><i style={{ background: '#7bd88f' }} />learned</span>
+          <span>Click a move to open the position.</span>
+        </p>
+        <RepTree nodes={tree} onOpen={props.onOpen} />
+      </div>
+
+      <div className="card">
+        <h2>Import from a Lichess study</h2>
+        <p className="muted small">Paste a link to a public or unlisted study, or to one chapter. Each chapter goes to White or Black by its board orientation; chapters without one go to the colour selected above.</p>
+        <form
+          className="rep-study"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            try {
+              const chapters = await fetchStudy(study);
+              const r = props.onImportStudy(chapters);
+              const parts = (['w', 'b'] as Color[]).filter((c) => r.per[c]).map((c) => `${r.per[c]} chapter${r.per[c] === 1 ? '' : 's'} as ${c === 'w' ? 'White' : 'Black'}`);
+              setStudyNote(`${r.moves ? `Added ${r.moves} moves from ` + parts.join(' and ') : 'Nothing new in that study'}${r.skipped ? ` · ${r.skipped} chapter${r.skipped === 1 ? '' : 's'} skipped (custom start position)` : ''}.`);
+              if (r.moves) setStudy('');
+            } catch (err) {
+              setStudyNote(err instanceof Error ? err.message : 'Could not reach Lichess.');
+            }
+            setBusy(false);
+          }}
+        >
+          <input value={study} onChange={(e) => setStudy(e.target.value)} placeholder="https://lichess.org/study/…" aria-label="Lichess study link" />
+          <button className="btn" disabled={!study.trim() || busy}>{busy ? 'Importing…' : 'Import study'}</button>
+        </form>
+        {studyNote && <p className="muted small">{studyNote}</p>}
       </div>
 
       <div className="card">

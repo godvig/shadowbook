@@ -32,3 +32,19 @@
 .meet-gaps .link { margin-left: auto; }
 .meet .link { background: none; border: 0; color: var(--gold); cursor: pointer; padding: 0; font: inherit; font-size: 14px; }
 @media (max-width: 760px) { .meet-cols { grid-template-columns: 1fr; } }
+.rep-tree { max-height: 460px; overflow: auto; font-size: 15px; line-height: 2; padding-right: 6px; }
+.rep-tree ul.tb { list-style: none; margin: 2px 0 2px 4px; padding-left: 14px; border-left: 1px solid var(--line-2); }
+.rep-tree ul.tb.root { margin-left: 0; padding-left: 0; border-left: 0; }
+.rep-tree .tm { background: none; border: 0; color: var(--muted); font: inherit; padding: 1px 4px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
+.rep-tree .tm:hover { background: var(--panel-2); color: var(--text); }
+.rep-tree .tm.mine { color: var(--text); font-weight: 600; }
+.rep-tree .tm.alt { font-style: italic; font-weight: 500; }
+.rep-tree .tn { color: var(--muted); font-weight: 400; font-style: normal; }
+.rep-tree .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-left: 2px; }
+.rep-tree .dot.new { background: #8a90a0; }
+.rep-tree .dot.due { background: #ff8a80; }
+.rep-tree .dot.ok { background: #7bd88f; }
+.rep-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+.rep-legend i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+.rep-study { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
+.rep-study input { flex: 1; min-width: 220px; min-height: 44px; box-sizing: border-box; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; padding: 0 12px; font: inherit; }
