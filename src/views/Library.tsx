@@ -7,6 +7,9 @@ import { playUci, ucisToSanLine } from '../lib/chess';
 import type { Color } from '../lib/types';
 import { addMove, entryId, importPgn, isNew, makeMain, positionAfter, queue, removeMove, review, type Outcome, type RepEntry } from '../rep/repertoire';
 import * as store from '../rep/store';
+import { meet, prepQueue } from '../rep/meet';
+import { MeetPanel } from '../rep/MeetPanel';
+import type { Opponent } from '../lib/opponent';
 import '../rep/rep.css';
 
 const NEW_PER_DAY = 20;
@@ -20,12 +23,18 @@ const sanOf = (fen: string, uci: string) => {
 };
 const arrow = (uci: string, brush: string): DrawShape => ({ orig: uci.slice(0, 2) as Key, dest: uci.slice(2, 4) as Key, brush });
 
-type Mode = 'overview' | 'build' | 'review';
+type Mode = 'overview' | 'build' | 'review' | 'prep';
 
-export function Library() {
+export interface LibraryStart {
+  prep?: Color;
+  fill?: { color: Color; line: string[] };
+}
+
+export function Library({ opponent, start }: { opponent?: Opponent | null; start?: LibraryStart }) {
   const [entries, setEntries] = useState<Map<string, RepEntry> | null>(null);
-  const [mode, setMode] = useState<Mode>('overview');
-  const [color, setColor] = useState<Color>('w');
+  const [mode, setMode] = useState<Mode>(start?.prep ? 'prep' : start?.fill ? 'build' : 'overview');
+  const [color, setColor] = useState<Color>(start?.prep ?? start?.fill?.color ?? 'w');
+  const [buildFrom, setBuildFrom] = useState<string[]>(start?.fill?.line ?? []);
   const [newDone, setNewDone] = useState(0);
   const [error, setError] = useState('');
 
@@ -48,6 +57,13 @@ export function Library() {
     store.save(changed).catch(() => setError('Could not save to this browser.'));
     for (const id of removed) store.remove(id).catch(() => {});
   };
+
+  // Computed once per prep session, so grading cards doesn't reshuffle it.
+  const prepCards = useMemo(
+    () => (mode === 'prep' && opponent && entries ? prepQueue(meet(entries, opponent.book, color, opponent.bookPlies)) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mode, color, opponent, entries === null],
+  );
 
   if (error) return <div className="card rep-wrap"><p className="err">{error}</p></div>;
   if (!entries) return <div className="card rep-wrap"><p className="muted">Opening your library…</p></div>;
@@ -75,7 +91,10 @@ export function Library() {
           due={q.filter((e) => !isNew(e)).length}
           fresh={q.filter(isNew).length}
           onReview={() => setMode('review')}
-          onBuild={() => setMode('build')}
+          onBuild={() => {
+            setBuildFrom([]);
+            setMode('build');
+          }}
           onImport={(pgn) => {
             const copy = new Map(entries);
             const res = importPgn(copy, pgn, color);
@@ -91,7 +110,32 @@ export function Library() {
           }}
         />
       )}
-      {mode === 'build' && <Build color={color} entries={entries} persist={persist} onDone={() => setMode('overview')} />}
+      {mode === 'overview' && opponent && (
+        <MeetPanel
+          opponent={opponent}
+          entries={entries}
+          onTrain={(c) => {
+            setColor(c);
+            setMode('prep');
+          }}
+          onFill={(c, line) => {
+            setColor(c);
+            setBuildFrom(line);
+            setMode('build');
+          }}
+        />
+      )}
+      {mode === 'build' && <Build key={buildFrom.join(' ')} color={color} start={buildFrom} entries={entries} persist={persist} onDone={() => setMode('overview')} />}
+      {mode === 'prep' && opponent && (
+        <Review
+          key={'prep' + color}
+          color={color}
+          title={`Positions ${opponent.username} steers into`}
+          initial={prepCards}
+          onGraded={(e) => persist([e])}
+          onDone={() => setMode('overview')}
+        />
+      )}
       {mode === 'review' && (
         <Review
           key={color}
@@ -217,8 +261,8 @@ function Overview(props: {
   );
 }
 
-function Build({ color, entries, persist, onDone }: { color: Color; entries: Map<string, RepEntry>; persist: (c: RepEntry[], r?: string[]) => void; onDone(): void }) {
-  const [line, setLine] = useState<string[]>([]);
+function Build({ color, start, entries, persist, onDone }: { color: Color; start: string[]; entries: Map<string, RepEntry>; persist: (c: RepEntry[], r?: string[]) => void; onDone(): void }) {
+  const [line, setLine] = useState<string[]>(start);
   const { fen, turn } = useMemo(() => positionAfter(line), [line]);
   const here = turn === color ? entries.get(entryId(color, fen)) : undefined;
   // Opponent moves you have prepared against: positions after them that you have a card for.
@@ -284,7 +328,7 @@ function Build({ color, entries, persist, onDone }: { color: Color; entries: Map
   );
 }
 
-function Review({ color, initial, onGraded, onDone }: { color: Color; initial: RepEntry[]; onGraded(e: RepEntry, wasNew: boolean): void; onDone(): void }) {
+function Review({ color, title, initial, onGraded, onDone }: { color: Color; title?: string; initial: RepEntry[]; onGraded(e: RepEntry, wasNew: boolean): void; onDone(): void }) {
   const [cards, setCards] = useState(initial);
   const [i, setI] = useState(0);
   const [hint, setHint] = useState(false);
@@ -345,6 +389,7 @@ function Review({ color, initial, onGraded, onDone }: { color: Color; initial: R
         <p className="muted small">
           {i + 1} / {cards.length} {isNew(card) && <span className="pill">new</span>}
         </p>
+        {title && <p className="eyebrow">{title}</p>}
         <h2>Your move</h2>
         <p className="rep-line">{card.line.length ? ucisToSanLine(card.line) : 'Start position'}</p>
         {card.moves.length > 1 && !wrong && <p className="muted small">You have {card.moves.length} moves here; any of them counts.</p>}

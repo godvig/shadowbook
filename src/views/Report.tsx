@@ -1,3 +1,6 @@
+import { MeetPanel } from '../rep/MeetPanel';
+import '../rep/rep.css';
+import type { LibraryStart } from './Library';
 import { useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
 import { choiceShares, scorePct, type LineStat } from '../lib/book';
@@ -67,11 +70,13 @@ export function Report({
   opponent,
   onChange,
   onStart,
+  onLibrary,
   onBack,
 }: {
   opponent: Opponent;
   onChange: (o: Opponent) => void;
   onStart: (s: GameSettings) => void;
+  onLibrary?: (start: LibraryStart) => void;
   onBack: () => void;
 }) {
   const [you, setYou] = useState<Color | 'random'>('w');
@@ -152,6 +157,8 @@ export function Report({
           </p>
           <Lines lines={book.lines.b} />
         </div>
+
+        {onLibrary && <MeetPanel opponent={opponent} compact onTrain={(c) => onLibrary({ prep: c })} onFill={(c, line) => onLibrary({ fill: { color: c, line } })} />}
 
         {preset && (
           <div className="card">
