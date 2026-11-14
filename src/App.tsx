@@ -7,6 +7,7 @@ import type { Opponent } from './lib/opponent';
 import { Logo } from './components/Logo';
 import { Match } from './views/Match';
 import { Privacy } from './views/Privacy';
+import { Library } from './views/Library';
 import { isOAuthReturn } from './live/lichessAuth';
 import { MATCH_PATH, isMatchPath } from './live/routes';
 
@@ -14,12 +15,14 @@ type View =
   | { name: 'home' }
   | { name: 'match' }
   | { name: 'privacy' }
+  | { name: 'library' }
   | { name: 'report' }
   | { name: 'game'; settings: GameSettings; startUcis: string[]; key: number }
   | { name: 'debrief'; settings: GameSettings; game: FinishedGame };
 
 function viewFromLocation(): View {
   if (location.hash === '#privacy') return { name: 'privacy' };
+  if (location.hash === '#library') return { name: 'library' };
   if (isMatchPath(location.pathname) || location.hash === '#match' || isOAuthReturn()) return { name: 'match' };
   return { name: 'home' };
 }
@@ -33,7 +36,7 @@ export default function App() {
     if (v.name === 'match') {
       if (!onMatch) history.pushState(null, '', MATCH_PATH);
     } else {
-      const target = v.name === 'privacy' ? '/#privacy' : '/';
+      const target = v.name === 'privacy' ? '/#privacy' : v.name === 'library' ? '/#library' : '/';
       if (onMatch) history.pushState(null, '', target);
       else if (`${location.pathname}${location.hash}` !== target) history.replaceState(null, '', target);
     }
@@ -57,7 +60,9 @@ export default function App() {
         ? location.pathname.startsWith('/sv/')
           ? 'Schack-VM 2026: Gukesh mot Sindarov – tippa varje parti och chatta live | Shadowbook'
           : 'Gukesh vs Sindarov: World Chess Championship 2026 predictions and live chat | Shadowbook'
-        : view.name === 'privacy'
+        : view.name === 'library'
+          ? 'Library – opening repertoire training · Shadowbook'
+          : view.name === 'privacy'
           ? 'Privacy | Shadowbook'
           : 'Shadowbook – spar against the openings of a real player';
   }, [view.name]);
@@ -66,6 +71,7 @@ export default function App() {
   const start = (settings: GameSettings, startUcis: string[] = []) =>
     setView({ name: 'game', settings, startUcis, key: Date.now() });
 
+  const spar = view.name !== 'match' && view.name !== 'library';
   return (
     <>
       <header className="topbar">
@@ -74,17 +80,21 @@ export default function App() {
         </button>
         <span className="tag">alpha</span>
         <nav className="tabs" aria-label="Sections">
-          <button className={view.name === 'match' ? '' : 'on'} aria-current={view.name === 'match' ? undefined : 'page'} onClick={() => setView({ name: 'home' })}>
+          <button className={spar ? 'on' : ''} aria-current={spar ? 'page' : undefined} onClick={() => setView({ name: 'home' })}>
             Spar
           </button>
           <button className={view.name === 'match' ? 'on' : ''} aria-current={view.name === 'match' ? 'page' : undefined} onClick={() => setView({ name: 'match' })}>
             Match <span className="live-pill">Live</span>
+          </button>
+          <button className={view.name === 'library' ? 'on' : ''} aria-current={view.name === 'library' ? 'page' : undefined} onClick={() => setView({ name: 'library' })}>
+            Library
           </button>
         </nav>
         <span className="spacer" />
         <a className="gh" href="https://github.com/godvig/shadowbook">GitHub</a>
       </header>
       <main className="page">
+        {view.name === 'library' && <Library />}
         {view.name === 'privacy' && <Privacy onBack={() => setView({ name: 'match' })} />}
         {view.name === 'match' && (
           <Match

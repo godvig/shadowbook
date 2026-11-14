@@ -1,7 +1,7 @@
 {
   "name": "shadowbook",
   "version": "0.1.0",
-  "description": "Spar against a bot that plays the openings of a real person \u2013 your next opponent, or yourself.",
+  "description": "Spar against a bot that plays the openings of a real person – your next opponent, or yourself.",
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
@@ -22,7 +22,8 @@
     "maia3-js": "^0.2.0",
     "onnxruntime-web": "^1.31.1",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "ts-fsrs": "^5.4.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,0 +1,24 @@
+.rep-wrap { max-width: 1100px; margin: 0 auto; }
+.rep-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.rep-head h1 { margin: 0 0 4px; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; }
+.seg button { background: transparent; color: var(--text); border: 0; padding: 10px 18px; min-height: 44px; cursor: pointer; font: inherit; }
+.seg button.on { background: var(--gold); color: var(--gold-ink); font-weight: 600; }
+.rep-stats { display: flex; gap: 32px; margin-bottom: 18px; flex-wrap: wrap; }
+.rep-stats div { display: flex; flex-direction: column; }
+.rep-stats b { font-size: 34px; line-height: 1.1; }
+.rep-stats span { color: var(--muted); font-size: 14px; }
+.rep-wrap .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.rep-pgn { width: 100%; box-sizing: border-box; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; padding: 10px; font: 14px/1.4 ui-monospace, monospace; margin: 8px 0 12px; resize: vertical; }
+.rep-grid { display: grid; grid-template-columns: minmax(0, 560px) minmax(260px, 1fr); gap: 20px; align-items: start; }
+.rep-board { aspect-ratio: 1; width: 100%; }
+.rep-side h2 { margin-top: 0; }
+.rep-line { font-family: ui-monospace, monospace; font-size: 14px; color: var(--muted); word-break: break-word; }
+.rep-moves { list-style: none; padding: 0; margin: 0 0 14px; }
+.rep-moves li { display: flex; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.rep-wrap .pill { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line-2); color: var(--muted); }
+.rep-wrap .link { background: none; border: 0; color: var(--gold); cursor: pointer; padding: 0; font: inherit; font-size: 14px; }
+.rep-wrap .err { color: #ff8a80; }
+.rep-wrap .ok { color: #7bd88f; font-weight: 600; }
+.rep-done { text-align: center; max-width: 520px; margin: 0 auto; }
+@media (max-width: 760px) { .rep-grid { grid-template-columns: 1fr; } }
