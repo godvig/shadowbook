@@ -222,6 +222,10 @@ Deno.serve(async (req) => {
       const glyph = String(body.glyph);
       if (!['!!', '!', '?', '??', '½'].includes(glyph)) return reply(400, { error: 'Unknown reaction.' });
       const key = { message_id: messageId, lichess_id: user.id, glyph };
+      // At most 30 reactions a minute per player: plenty for real use, a wall for scripts.
+      const since = new Date(Date.now() - 60_000).toISOString();
+      const { count: recent } = await db.from('reactions').select('*', { count: 'exact', head: true }).eq('lichess_id', user.id).gte('created_at', since);
+      if ((recent ?? 0) >= 30) return reply(429, { error: 'Easy on the reactions. Try again in a minute.' });
       const { data: existing } = await db.from('reactions').select('glyph').match(key).maybeSingle();
       const { error } = existing ? await db.from('reactions').delete().match(key) : await db.from('reactions').insert(key);
       return error ? reply(400, { error: 'Could not save your reaction.' }) : reply(200, { ok: true, on: !existing });
