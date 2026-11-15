@@ -212,11 +212,13 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
         <div className="lv-side lv-left">
           <p className="lv-eyebrow">Geneva · {next ? `${next.label} next` : played ? `${played} of 14 played` : '14 games'}</p>
           <h1 className="lv-name gold">Gukesh</h1>
+          <PlayerMark tone="gold" initials="GD" country="IND" label="Gukesh Dommaraju, India" bands={['#ff9933', '#ffffff', '#138808']} />
           <span className="lv-score">{fmtScore(score.gukesh)}</span>
         </div>
         <div className="lv-side lv-right">
           <p className="lv-eyebrow">World Championship 2026</p>
           <h1 className="lv-name blue">Sindarov</h1>
+          <PlayerMark tone="blue" initials="JS" country="UZB" label="Javokhir Sindarov, Uzbekistan" bands={['#0099b5', '#ffffff', '#1eb53a']} />
           <span className="lv-score">{fmtScore(score.sindarov)}</span>
         </div>
         <div className="lv-cta">
@@ -1195,5 +1197,20 @@ function ModerationPanel({ guard, winner, onWinner }: { guard: (fn: () => Promis
         <p className="lv-muted">No reports. Lovely crowd.</p>
       ))}
     </section>
+  );
+}
+
+/** A drawn stand-in for a portrait: initials, the flag's colours and the country code. No photos, so no photo rights. */
+function PlayerMark({ tone, initials, country, label, bands }: { tone: 'gold' | 'blue'; initials: string; country: string; label: string; bands: string[] }) {
+  return (
+    <div className={`lv-mark ${tone}`} role="img" aria-label={label}>
+      <span className="lv-mark-badge">{initials}</span>
+      <span className="lv-mark-flag">
+        {bands.map((c) => (
+          <i key={c} style={{ background: c }} />
+        ))}
+      </span>
+      <span className="lv-mark-country">{country}</span>
+    </div>
   );
 }
