@@ -97,11 +97,13 @@ const NOT_CLASSICAL = /\b(rapid|blitz|bullet|armageddon|tie-?breaks?|play-?offs?
 
 /**
  * Classical by FIDE's definition: more than 60 minutes per player for a 60-move game.
- * The TimeControl tag decides when it can be parsed; event and round names catch
- * rapid, blitz, Armageddon and tiebreak games that come without one.
+ * Event and round names rule out rapid, blitz, Armageddon and tiebreak games (broadcast tags
+ * are often missing or free text); otherwise the TimeControl tag decides when it can be parsed.
  */
 export function isClassical(headers, eventName = '') {
-  const names = [headers.Event, headers.Round, headers.RoundName, eventName].filter(Boolean).join(' ');
+  // Lichess puts the broadcast round's name in BroadcastURL: ".../round-4-armageddon/<id>", ".../tiebreak-1-rapid-1/<id>".
+  const round = headers.BroadcastURL?.match(/\/broadcast\/[^/]+\/([^/]+)/)?.[1];
+  const names = [headers.Event, headers.Round, headers.RoundName, round, eventName].filter(Boolean).join(' ');
   if (NOT_CLASSICAL.test(names)) return false;
   if (headers.Variant && headers.Variant.toLowerCase() !== 'standard') return false;
   if (headers.SetUp === '1' || headers.FEN) return false;
