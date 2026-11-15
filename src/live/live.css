@@ -21,6 +21,12 @@
 .lv-right { align-items: flex-end; text-align: right; }
 .lv-eyebrow { margin: 0; font-family: var(--lv-mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lv-text2); }
 .lv-name { font-family: var(--lv-display); font-weight: 800; text-transform: uppercase; font-size: clamp(40px, 4.6vw, 80px); line-height: 0.88; margin: 0; }
+.lv-mark { display: inline-flex; align-items: center; gap: 10px; margin: 6px 0 2px; }
+.lv-right .lv-mark { flex-direction: row-reverse; }
+.lv-mark-badge { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; border: 2px solid currentColor; background: rgba(7, 8, 10, 0.6); font-family: var(--lv-display); font-weight: 800; font-size: 24px; letter-spacing: 0.02em; }
+.lv-mark-flag { display: inline-flex; flex-direction: column; width: 30px; height: 20px; border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px var(--lv-line2); }
+.lv-mark-flag i { flex: 1; }
+.lv-mark-country { font-family: var(--lv-mono); font-size: 13px; letter-spacing: 0.08em; color: var(--lv-text2); }
 .lv-score { font-family: var(--lv-display); font-weight: 800; font-size: clamp(56px, 7vw, 96px); line-height: 1; }
 .lv-cta { position: absolute; left: 0; right: 0; bottom: 32px; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; padding: 0 16px; }
 
@@ -122,6 +128,7 @@
 
 @media (max-width: 720px) {
   .lv-banner { grid-template-columns: 1fr; column-gap: 0; padding: 28px 20px 140px; min-height: 0; gap: 16px; }
+  .lv-right .lv-mark { flex-direction: row; }
   .lv-right { align-items: flex-start; text-align: left; }
   .lv-hero h2 { font-size: 32px; }
   .lv-boardcol { flex-basis: 100%; }
