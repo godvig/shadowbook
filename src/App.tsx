@@ -10,6 +10,7 @@ import { Privacy } from './views/Privacy';
 import { Library, type LibraryStart } from './views/Library';
 import { isOAuthReturn } from './live/lichessAuth';
 import { MATCH_PAGES, MATCH_PATH, isMatchPath, matchLang } from './live/routes';
+import { countView } from './lib/counter';
 
 type View =
   | { name: 'home' }
@@ -29,6 +30,8 @@ function viewFromLocation(): View {
 
 export default function App() {
   const [view, setViewRaw] = useState<View>(() => viewFromLocation());
+  // Read on the first render: the match view clears the login parameters from the address before the effects below run.
+  const [backFromLogin] = useState(isOAuthReturn);
   const setView = (v: View) => {
     setViewRaw(v);
     // The match hub has its own address; everything else lives on the root, privacy as #privacy.
@@ -65,7 +68,10 @@ export default function App() {
           : view.name === 'privacy'
           ? 'Privacy | Shadowbook'
           : 'Shadowbook – spar against the openings of a real player';
-  }, [view.name]);
+    // Count the view anonymously (lib/counter.ts). Match pages keep their own address; the other views are named.
+    // Coming back from the Lichess login is not a visit from lichess.org, so that referrer is left out.
+    countView(view.name === 'match' ? location.pathname : view.name === 'home' ? '/' : `/${view.name}`, { referrer: !backFromLogin });
+  }, [view.name, backFromLogin]);
   const [opponent, setOpponent] = useState<Opponent | null>(null);
 
   const start = (settings: GameSettings, startUcis: string[] = []) =>

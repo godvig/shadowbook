@@ -82,6 +82,7 @@ src/
     bot.ts       book move (weighted by frequency) → otherwise Maia3 sampled at the player's rating
     review.ts    debrief: Maia3's value head scores each of your moves at your rating
     storage.ts   IndexedDB cache of scouted players
+    counter.ts   anonymous visit counting: what is sent, and when nothing is
   live/          the match hub: Lichess login (PKCE), Supabase client, match logic, chat, stats, share cards, calendar
   views/         Home → Report → Game → Debrief, and Match
   components/    Board (Lichess' Chessground)
@@ -98,6 +99,9 @@ supabase/
 - **Match hub backend:** [Supabase](https://supabase.com/) – Postgres with row level security (the browser can only read),
   realtime subscriptions, one Edge Function as the only write path, and a pg_cron job that pulls the
   [Lichess broadcast](https://lichess.org/api#tag/broadcasts). Setup in [`supabase/README.md`](supabase/README.md).
+- **Visit counting:** [GoatCounter](https://www.goatcounter.com/), called through its documented `/count` endpoint from
+  [`src/lib/counter.ts`](src/lib/counter.ts) instead of its script, so the query string (which can hold the Lichess login
+  code) is never sent. No cookies; only the published site is counted, and not at all with Do Not Track on.
 - **Preset games:** the moves of published classical games from the official broadcasts relayed on
   [Lichess](https://lichess.org/broadcast), read with the [Broadcast API](https://lichess.org/api#tag/broadcasts).
   `npm run presets` rebuilds `public/presets/*.json` from the events in
