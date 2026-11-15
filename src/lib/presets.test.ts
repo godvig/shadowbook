@@ -49,6 +49,10 @@ describe('classical filter', () => {
     expect(isClassical({ Event: 'Norway Chess 2026 | Armageddon' })).toBe(false);
     expect(isClassical({ Round: '2.3 Tiebreaks' }, 'FIDE World Cup 2025 | Round 2')).toBe(false);
     expect(isClassical({}, 'Some Rapid & Blitz')).toBe(false);
+    expect(isClassical({ BroadcastURL: 'https://lichess.org/broadcast/norway-chess-2025-open/round-4-armageddon/4MNffXul' })).toBe(false);
+    expect(isClassical({ BroadcastURL: 'https://lichess.org/broadcast/fide-world-cup-2025-round-4/tiebreak-1-rapid-1/HjIi0vPz' })).toBe(false);
+    expect(isClassical({ BroadcastURL: 'https://lichess.org/broadcast/tata-steel-masters-2024/tiebreaks/L43YRQWv' })).toBe(false);
+    expect(isClassical({ BroadcastURL: 'https://lichess.org/broadcast/fide-world-cup-2025-round-4/game-2/XOuEW2Zp' })).toBe(true);
     expect(isClassical({}, 'Tata Steel Chess 2026 | Masters')).toBe(true);
     expect(isClassical({ TimeControl: '5400+30', Variant: 'Chess960' })).toBe(false);
   });
