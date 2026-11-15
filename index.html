@@ -28,7 +28,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
   </head>
   <body data-view="home">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Shown until the app starts, and what crawlers read. React replaces it. -->
+      <main class="static-intro">
+        <h1>Shadowbook: play the person, not the engine</h1>
+        <p>Type in any chess.com or Lichess username and spar against a bot that opens exactly like that player, then plays on like a human of their rating. See where your preparation runs out and turn it into lessons.</p>
+        <p>Free, open source and no account needed. Following the World Championship? <a href="/world-chess-championship-2026/">Gukesh vs Sindarov: predictions and live chat</a> (<a href="/sv/schack-vm-2026/">på svenska</a>).</p>
+        <p><a href="https://github.com/godvig/shadowbook">Code on GitHub</a> · Built by <a href="https://adamenglund.eu/">Adam Englund</a></p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
