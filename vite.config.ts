@@ -13,12 +13,14 @@ export default defineConfig({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 1200,
-    // One HTML entry per crawlable page: the app plus the match hub in English and Swedish.
+    // One HTML entry per crawlable page: the app plus the match hub in each language (see scripts/match-pages.mjs).
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         match: resolve(import.meta.dirname, 'world-chess-championship-2026/index.html'),
         matchSv: resolve(import.meta.dirname, 'sv/schack-vm-2026/index.html'),
+        matchUz: resolve(import.meta.dirname, 'uz/shaxmat-jahon-chempionati-2026/index.html'),
+        matchHi: resolve(import.meta.dirname, 'hi/vishwa-shatranj-championship-2026/index.html'),
       },
     },
   },
