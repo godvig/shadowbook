@@ -1,0 +1,207 @@
+{
+  "$comment": "Source events for npm run presets (scripts/build-presets.mjs). Lichess broadcast tournament ids; dates are when the event started.",
+  "players": {
+    "gukesh": {
+      "name": "Gukesh D",
+      "display": "Gukesh",
+      "fideId": 46616543,
+      "surname": "gukesh",
+      "given": [
+        "d",
+        "dommaraju"
+      ]
+    },
+    "sindarov": {
+      "name": "Javokhir Sindarov",
+      "display": "Sindarov",
+      "fideId": 14205483,
+      "surname": "sindarov",
+      "given": [
+        "javokhir",
+        "j"
+      ]
+    }
+  },
+  "events": [
+    {
+      "name": "Tata Steel Masters 2024",
+      "id": "ycy5D2r8",
+      "url": "https://lichess.org/broadcast/tata-steel-masters-2024/ycy5D2r8",
+      "date": "2024-01-13"
+    },
+    {
+      "name": "FIDE Candidates 2024 | Open",
+      "id": "wEuVhT9c",
+      "url": "https://lichess.org/broadcast/fide-candidates-2024-open/wEuVhT9c",
+      "date": "2024-04-04"
+    },
+    {
+      "name": "Superbet Romania Chess Classic 2024",
+      "id": "K1NfeoWE",
+      "url": "https://lichess.org/broadcast/superbet-romania-chess-classic-2024/K1NfeoWE",
+      "date": "2024-06-26"
+    },
+    {
+      "name": "30th Abu Dhabi Chess Festival 2024 | Masters",
+      "id": "y7UcOAkO",
+      "url": "https://lichess.org/broadcast/30th-abu-dhabi-chess-festival-2024-masters/y7UcOAkO",
+      "date": "2024-08-15"
+    },
+    {
+      "name": "45th Chess Olympiad Budapest 2024 | Open I",
+      "id": "wYigbpXq",
+      "url": "https://lichess.org/broadcast/45th-chess-olympiad-budapest-2024-open-i/wYigbpXq",
+      "date": "2024-09-11"
+    },
+    {
+      "name": "European Chess Club Cup | Open",
+      "id": "f7yEGk0O",
+      "url": "https://lichess.org/broadcast/european-chess-club-cup-open/f7yEGk0O",
+      "date": "2024-10-20"
+    },
+    {
+      "name": "3rd International President Cup Tashkent 2024",
+      "id": "GMzdyJ10",
+      "url": "https://lichess.org/broadcast/3rd-international-president-cup-tashkent-2024/GMzdyJ10",
+      "date": "2024-11-21"
+    },
+    {
+      "name": "FIDE World Championship 2024",
+      "id": "n3yHJI5Y",
+      "url": "https://lichess.org/broadcast/fide-world-championship-2024/n3yHJI5Y",
+      "date": "2024-11-25"
+    },
+    {
+      "name": "Tata Steel Chess 2025 | Masters",
+      "id": "jR0BiOwR",
+      "url": "https://lichess.org/broadcast/tata-steel-chess-2025-masters/jR0BiOwR",
+      "date": "2025-01-18"
+    },
+    {
+      "name": "GCT: 2025 Superbet Classic Romania",
+      "id": "xPpw1xOU",
+      "url": "https://lichess.org/broadcast/gct-2025-superbet-classic-romania/xPpw1xOU",
+      "date": "2025-05-07"
+    },
+    {
+      "name": "TePe Sigeman & Co Chess Tournament 2025",
+      "id": "9dpbp7ox",
+      "url": "https://lichess.org/broadcast/tepe-sigeman-co-chess-tournament-2025/9dpbp7ox",
+      "date": "2025-05-20"
+    },
+    {
+      "name": "Norway Chess 2025 | Open",
+      "id": "PcsMbQ9J",
+      "url": "https://lichess.org/broadcast/norway-chess-2025-open/PcsMbQ9J",
+      "date": "2025-05-26"
+    },
+    {
+      "name": "GCT: Sinquefield Cup 2025 | Sinquefield Cup",
+      "id": "09ZG4Ez5",
+      "url": "https://lichess.org/broadcast/gct-sinquefield-cup-2025-sinquefield-cup/09ZG4Ez5",
+      "date": "2025-08-18"
+    },
+    {
+      "name": "FIDE Grand Swiss 2025 | Open",
+      "id": "vSyxclHS",
+      "url": "https://lichess.org/broadcast/fide-grand-swiss-2025-open/vSyxclHS",
+      "date": "2025-09-04"
+    },
+    {
+      "name": "European Chess Club Cup 2025 | Open Matches 1-16",
+      "id": "8jXzp45R",
+      "url": "https://lichess.org/broadcast/european-chess-club-cup-2025-open-matches-1-16/8jXzp45R",
+      "date": "2025-10-19"
+    },
+    {
+      "name": "FIDE World Cup 2025 | Round 2",
+      "id": "C8xGMEpX",
+      "url": "https://lichess.org/broadcast/fide-world-cup-2025-round-2/C8xGMEpX",
+      "date": "2025-11-04"
+    },
+    {
+      "name": "FIDE World Cup 2025 | Round 3",
+      "id": "sOK6GBCf",
+      "url": "https://lichess.org/broadcast/fide-world-cup-2025-round-3/sOK6GBCf",
+      "date": "2025-11-07"
+    },
+    {
+      "name": "FIDE World Cup 2025 | Round 4",
+      "id": "xLyRWYPA",
+      "url": "https://lichess.org/broadcast/fide-world-cup-2025-round-4/xLyRWYPA",
+      "date": "2025-11-11"
+    },
+    {
+      "name": "FIDE World Cup 2025 | Round 5",
+      "id": "zb9ruNEJ",
+      "url": "https://lichess.org/broadcast/fide-world-cup-2025-round-5/zb9ruNEJ",
+      "date": "2025-11-14"
+    },
+    {
+      "name": "FIDE World Cup 2025 | Quarterfinals",
+      "id": "4Zfj97D4",
+      "url": "https://lichess.org/broadcast/fide-world-cup-2025-quarterfinals/4Zfj97D4",
+      "date": "2025-11-17"
+    },
+    {
+      "name": "FIDE World Cup 2025 | Semifinals",
+      "id": "25zoKzpI",
+      "url": "https://lichess.org/broadcast/fide-world-cup-2025-semifinals/25zoKzpI",
+      "date": "2025-11-21"
+    },
+    {
+      "name": "FIDE World Cup 2025 | Finals",
+      "id": "DqmmnYSq",
+      "url": "https://lichess.org/broadcast/fide-world-cup-2025-finals/DqmmnYSq",
+      "date": "2025-11-24"
+    },
+    {
+      "name": "Tata Steel Chess 2026 | Masters",
+      "id": "3COxSfdj",
+      "url": "https://lichess.org/broadcast/tata-steel-chess-2026-masters/3COxSfdj",
+      "date": "2026-01-17"
+    },
+    {
+      "name": "Prague International Chess Festival 2026 | Masters",
+      "id": "6u6ftFhp",
+      "url": "https://lichess.org/broadcast/prague-international-chess-festival-2026-masters/6u6ftFhp",
+      "date": "2026-02-25"
+    },
+    {
+      "name": "FIDE Candidates 2026: Open",
+      "id": "BLA70Vds",
+      "url": "https://lichess.org/broadcast/fide-candidates-2026-open/BLA70Vds",
+      "date": "2026-03-29"
+    },
+    {
+      "name": "GCT: Super Chess Classic Romania 2026",
+      "id": "p3ctK4xS",
+      "url": "https://lichess.org/broadcast/gct-super-chess-classic-romania-2026/p3ctK4xS",
+      "date": "2026-05-14"
+    },
+    {
+      "name": "Norway Chess 2026 | Open",
+      "id": "kDQUxYbE",
+      "url": "https://lichess.org/broadcast/norway-chess-2026-open/kDQUxYbE",
+      "date": "2026-05-25"
+    },
+    {
+      "name": "Chennai Grand Masters 2026",
+      "id": "41LetKY0",
+      "url": "https://lichess.org/broadcast/chennai-grand-masters-2026/41LetKY0",
+      "date": "2026-07-16"
+    },
+    {
+      "name": "GCT: Sinquefield Cup 2026",
+      "id": "2sMqschv",
+      "url": "https://lichess.org/broadcast/gct-sinquefield-cup-2026/2sMqschv",
+      "date": "2026-08-10"
+    },
+    {
+      "name": "46th FIDE Chess Olympiad Samarkand 2026 | Open | Matches 1-12",
+      "id": "n1pPI5Q0",
+      "url": "https://lichess.org/broadcast/46th-fide-chess-olympiad-samarkand-2026-open-matches-1-12/n1pPI5Q0",
+      "date": "2026-09-16"
+    }
+  ]
+}
