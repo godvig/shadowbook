@@ -127,6 +127,8 @@ cg-board square.check { background: radial-gradient(ellipse at center, rgba(255,
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 40px; align-items: center; margin-bottom: 36px; }
 .hero p.lead { font-size: 18px; color: var(--text-2); max-width: 560px; }
 @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } .page { padding: 20px 16px 48px; } .topbar { padding: 12px 16px; } }
+.static-intro { max-width: 640px; margin: 64px auto; padding: 0 20px; line-height: 1.6; }
+.static-intro h1 { font-size: 28px; }
 .footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
 
 /* Section tabs (Spar / Match) */
