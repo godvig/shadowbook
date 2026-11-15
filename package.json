@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "presets": "node scripts/build-presets.mjs",
+    "match-pages": "node scripts/match-pages.mjs",
     "function:bundle": "node scripts/bundle-function.mjs"
   },
   "dependencies": {

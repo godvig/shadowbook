@@ -9,7 +9,7 @@ import { Match } from './views/Match';
 import { Privacy } from './views/Privacy';
 import { Library, type LibraryStart } from './views/Library';
 import { isOAuthReturn } from './live/lichessAuth';
-import { MATCH_PATH, isMatchPath } from './live/routes';
+import { MATCH_PAGES, MATCH_PATH, isMatchPath, matchLang } from './live/routes';
 
 type View =
   | { name: 'home' }
@@ -55,11 +55,11 @@ export default function App() {
   useEffect(() => {
     // The crawlable text on the match pages is only shown with the match view.
     document.body.dataset.view = view.name;
+    // A translated match page declares its own language; every other view is in English.
+    document.documentElement.lang = view.name === 'match' ? (matchLang(location.pathname) ?? 'en') : 'en';
     document.title =
       view.name === 'match'
-        ? location.pathname.startsWith('/sv/')
-          ? 'Schack-VM 2026: Gukesh mot Sindarov – tippa varje parti och chatta live | Shadowbook'
-          : 'Gukesh vs Sindarov: World Chess Championship 2026 predictions and live chat | Shadowbook'
+        ? MATCH_PAGES[matchLang(location.pathname) ?? 'en'].title
         : view.name === 'library'
           ? 'Library – opening repertoire training · Shadowbook'
           : view.name === 'privacy'
@@ -72,6 +72,10 @@ export default function App() {
     setView({ name: 'game', settings, startUcis, key: Date.now() });
 
   const spar = view.name !== 'match' && view.name !== 'library';
+  // On a translated match page, point to the description in that language (it sits below the English app).
+  const pageLang = matchLang(location.pathname);
+  const noteLang = pageLang && MATCH_PAGES[pageLang].note && document.getElementById('seo-h') ? pageLang : null;
+
   return (
     <>
       <header className="topbar">
@@ -96,6 +100,11 @@ export default function App() {
       <main className="page">
         {view.name === 'library' && <Library key={view.key} opponent={opponent} start={view.start} />}
         {view.name === 'privacy' && <Privacy onBack={() => setView({ name: 'match' })} />}
+        {view.name === 'match' && noteLang && (
+          <p className="lang-note" lang={noteLang}>
+            <a href="#seo-h">{MATCH_PAGES[noteLang].note}</a>
+          </p>
+        )}
         {view.name === 'match' && (
           <Match
             onPrivacy={() => setView({ name: 'privacy' })}

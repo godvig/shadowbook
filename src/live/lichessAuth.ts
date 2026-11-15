@@ -1,7 +1,7 @@
 // "Log in with Lichess": OAuth 2 authorization code flow with PKCE, entirely in the browser.
 // Lichess accepts public clients without registration, so there is no client secret.
 import { LICHESS, LICHESS_CLIENT_ID } from './config';
-import { MATCH_PATH } from './routes';
+import { MATCH_PATH, isMatchPath } from './routes';
 
 const TOKEN_KEY = 'shadowbook.lichessToken';
 const PENDING_KEY = 'shadowbook.oauthPending';
@@ -33,7 +33,9 @@ export const getToken = () => store()?.getItem(TOKEN_KEY) ?? null;
 export async function login(): Promise<void> {
   const verifier = random(48);
   const state = random(16);
-  sessionStorage.setItem(PENDING_KEY, JSON.stringify({ verifier, state }));
+  // Remember which language's match page the visitor logged in from, to send them back there.
+  const returnTo = isMatchPath(location.pathname) ? location.pathname : undefined;
+  sessionStorage.setItem(PENDING_KEY, JSON.stringify({ verifier, state, returnTo }));
   const q = new URLSearchParams({
     response_type: 'code',
     client_id: LICHESS_CLIENT_ID,
@@ -54,9 +56,9 @@ export async function completeLogin(): Promise<string | null> {
   const code = params.get('code');
   const state = params.get('state');
   if (!state) return null;
-  const pending = JSON.parse(sessionStorage.getItem(PENDING_KEY) ?? 'null') as { verifier: string; state: string } | null;
+  const pending = JSON.parse(sessionStorage.getItem(PENDING_KEY) ?? 'null') as { verifier: string; state: string; returnTo?: string } | null;
   sessionStorage.removeItem(PENDING_KEY);
-  history.replaceState(null, '', MATCH_PATH);
+  history.replaceState(null, '', pending?.returnTo && isMatchPath(pending.returnTo) ? pending.returnTo : MATCH_PATH);
   if (!code || !pending || pending.state !== state) throw new Error('Lichess login was cancelled or expired. Try again.');
   const res = await fetch(`${LICHESS}/api/token`, {
     method: 'POST',

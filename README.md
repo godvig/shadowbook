@@ -53,7 +53,7 @@ Requires Node 20+. `npm run build` produces a static site in `dist/` that can be
 
 A second tab built for Gukesh vs Sindarov (Geneva, 2026): a place to follow the match, call every game and talk about it.
 Live at [shadowbook.godvig.com/world-chess-championship-2026](https://shadowbook.godvig.com/world-chess-championship-2026/)
-(and [in Swedish](https://shadowbook.godvig.com/sv/schack-vm-2026/)), each a static, crawlable page with event structured data that the app mounts on.
+(and in [Swedish](https://shadowbook.godvig.com/sv/schack-vm-2026/), [Uzbek](https://shadowbook.godvig.com/uz/shaxmat-jahon-chempionati-2026/) and [Hindi](https://shadowbook.godvig.com/hi/vishwa-shatranj-championship-2026/)), each a static, crawlable page with event structured data that the app mounts on. The pages and the sitemap are written by `npm run match-pages` from the texts in `scripts/match-pages.mjs`; the app itself is in English.
 
 ![Match hub: score, predictions and sparring](docs/match-hub.png)
 
