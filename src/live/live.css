@@ -166,7 +166,7 @@
 .lv-line:hover .mod .quiet, .lv-line .mod .quiet:focus-visible { opacity: 1; }
 @media (hover: none) { .lv-line .mod .quiet { opacity: 0.5; } }
 .lv-winner .lv-head .mono { font-size: 13px; color: var(--lv-text2); }
-.lv-winner-picks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lv-winner-picks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .lv-winner-pick { position: relative; min-height: 72px; border-radius: 12px; border: 1px solid var(--lv-line2); background: #121418; color: var(--lv-text); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; cursor: pointer; }
 .lv-winner-pick .name { font: 800 32px/1 var(--lv-display); text-transform: uppercase; }
 .lv-winner-pick.gukesh .name { color: var(--lv-gold); }
@@ -175,6 +175,8 @@
 .lv-winner-pick.won { box-shadow: 0 0 0 3px rgba(242, 181, 68, 0.35); }
 .lv-winner-pick:disabled { cursor: default; opacity: 0.85; }
 .lv-winner-pick .tag { position: absolute; top: 6px; right: 10px; font: 600 11px var(--lv-mono); color: var(--lv-gold); text-transform: uppercase; }
+/* Phones: the two names do not fit side by side, so the picks stack. */
+@media (max-width: 560px) { .lv-winner-picks { grid-template-columns: 1fr; } }
 .lv-reports { list-style: none; margin: 0; padding: 0; }
 .lv-reports li { padding: 10px 0; border-top: 1px solid var(--lv-line); }
 .lv-report-actions { display: inline-flex; gap: 12px; margin-left: 8px; }
