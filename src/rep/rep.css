@@ -52,3 +52,140 @@
 .rep-pick select { min-height: 44px; max-width: 320px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; padding: 0 12px; font: inherit; }
 .rep-notes { margin: 8px 0 0; padding-left: 18px; }
 .rep-notes li { margin: 2px 0; }
+.rep-tree span.tm { cursor: default; }
+.rep-tree .tw .link { margin: 0 4px; font-size: 13px; }
+.rep-games-form, .rep-games .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin: 8px 0 4px; }
+.rep-games label:not(.rep-check) { display: flex; flex-direction: column; gap: 4px; }
+.rep-games input:not([type="checkbox"]), .rep-games select { min-height: 44px; box-sizing: border-box; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; padding: 0 12px; font: inherit; }
+.rep-games input[type="number"] { width: 110px; }
+.rep-games fieldset { border: 0; padding: 0; margin: 8px 0; display: flex; gap: 6px 16px; flex-wrap: wrap; }
+.rep-games legend { padding: 0; margin-bottom: 4px; }
+.rep-check { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; flex-wrap: wrap; cursor: pointer; }
+.rep-check input { width: 18px; height: 18px; }
+.rep-games-deck { border-top: 1px solid var(--line-2); padding: 8px 0; }
+.rep-games-deck details { margin-top: 4px; }
+.rep-games-deck summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.rep-games-differs .btn { margin-left: 4px; }
+.rep-tree .tm.on { background: var(--panel-2); color: var(--text); box-shadow: inset 0 -2px 0 var(--gold); }
+
+/* Your library (shelf) */
+.shelf-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.shelf-head h1, .shelf-head h2 { margin: 0 0 4px; }
+.shelf-filter { margin-bottom: 14px; }
+.btn.on { border-color: var(--gold); color: var(--text); background: var(--panel-2); }
+.shelf-grid, .starter-row { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.shelf-grid { grid-template-columns: 1fr; }
+@media (min-width: 640px) { .shelf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 960px) { .shelf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.shelf-grid > .card + .card, .starter-row > .card + .card { margin-top: 0; }
+.deck-card { display: flex; flex-direction: column; gap: 6px; padding: 16px; }
+.deck-card h3 { margin: 0; font-size: 17px; }
+.deck-card p { margin: 0; }
+.deck-card .eyebrow { margin: 4px 0 0; }
+.deck-card .row { margin-top: auto; padding-top: 8px; }
+.deck-card-board { background: none; border: 0; padding: 0; cursor: pointer; border-radius: 8px; }
+.bar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: #7bd88f; }
+.shelf-more { text-align: center; margin-top: 12px; }
+.shelf-welcome { border-color: var(--gold); }
+.shelf-welcome h2 { margin-top: 0; }
+.shelf-foot { margin-top: 24px; }
+.starters { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+.starter-row { grid-auto-flow: column; grid-auto-columns: calc((100% - 32px) / 3); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+.starter-row > li { scroll-snap-align: start; }
+@media (max-width: 959px) { .starter-row { grid-auto-columns: calc((100% - 16px) / 2); } }
+@media (max-width: 639px) { .starter-row { grid-auto-columns: 85%; } }
+
+/* A static board: Chessground's pieces on the same colours as the real board. */
+.mini-board { position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; background-color: var(--board-light); background-image: repeating-conic-gradient(var(--board-dark) 0% 25%, var(--board-light) 0% 50%); background-size: 25% 25%; }
+.mini-board piece { will-change: auto; }
+
+/* Deck view */
+.deck-head { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.deck-head h1 { margin: 0; font-size: 22px; }
+.deck-name { font: inherit; font-size: 22px; font-weight: 700; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; min-height: 44px; min-width: 0; flex: 1 1 220px; max-width: 520px; }
+.deck-name:hover, .deck-name:focus { border-color: var(--line-2); background: var(--panel-2); }
+.deck-controls { margin: 12px 0 8px; }
+.deck-move { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+.deck-move-title { margin: 0 0 8px; }
+.deck-note { white-space: pre-wrap; background: var(--panel-2); border-radius: 8px; padding: 8px 10px; }
+.glyphs .btn { min-width: 44px; min-height: 44px; }
+.deck-note-edit { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.deck-note-edit textarea { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px; resize: vertical; }
+.deck-settings { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.deck-settings label { display: flex; flex-direction: column; gap: 4px; }
+.deck-settings select, .add-dialog select { min-height: 44px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; padding: 0 12px; font: inherit; }
+
+/* + Add */
+.add-dialog { width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); background: var(--panel); color: var(--text); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 20px; }
+.add-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.add-dialog .card { border: 0; padding: 0; background: none; }
+.add-dialog .card h2 { display: none; }
+.add-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.add-head h2 { margin: 0; flex: 1; font-size: 20px; }
+.add-close { min-width: 44px; min-height: 44px; }
+.add-menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.add-choice { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; min-height: 56px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; font: inherit; cursor: pointer; }
+.add-choice:hover { border-color: var(--gold); }
+.add-choice.first { border-color: var(--gold); }
+.add-dialog .rep-pgn { width: 100%; }
+@media (max-width: 639px) { .add-dialog { width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; margin: 0; border-radius: 0; } }
+/* The page footer describes Spar, so the Library leaves it out. */
+body[data-view="library"] .footer { display: none; }
+.starters .shelf-head h2 { font-size: clamp(28px, 4vw, 40px); }
+.rep-games-line { font-weight: 600; color: var(--text-2); }
+/* Each other line starts on its own row with ↳; wrapped moves stay indented under it. */
+.rep-tree ul.tb > li { position: relative; padding-left: 18px; margin: 6px 0; }
+.rep-tree ul.tb > li::before { content: '↳'; position: absolute; left: 2px; top: 0; color: var(--muted); }
+.rep-tree ul.tb.root > li { padding-left: 0; }
+.rep-tree ul.tb.root > li::before { content: none; }
+.rep-tree .tend { font-size: 12px; color: var(--muted); margin-left: 6px; white-space: nowrap; }
+.rep-tree .dot { width: 8px; height: 8px; }
+.rep-help { margin: 0 0 8px; }
+.rep-help summary { cursor: pointer; color: var(--muted); min-height: 32px; display: flex; align-items: center; }
+.rep-help ul { margin: 4px 0 8px; padding-left: 18px; color: var(--text-2); }
+.rep-help li { margin: 4px 0; }
+.rep-help .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+.rep-help .dot.new { background: #8a90a0; }
+.rep-help .dot.due { background: #ff8a80; }
+.rep-help .dot.ok { background: #7bd88f; }
+.rep-arrows .sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; }
+.rep-arrows .sw.green { background: #15781b; }
+.rep-arrows .sw.pale-green { background: #15781b; opacity: .45; }
+.rep-arrows .sw.blue { background: #003088; opacity: .55; box-shadow: 0 0 0 1px #6cb4f5; }
+.shelf-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; border: 1px solid #7bd88f; }
+/* Move signs in Lichess's colours. */
+.glyph { font-weight: 700; margin-left: 1px; }
+.glyph.brilliant { color: #26c2a3; }
+.glyph.good { color: #22ac38; }
+.glyph.interesting { color: #ea45d8; }
+.glyph.dubious { color: #56b4e9; }
+.glyph.mistake { color: #e69f00; }
+.glyph.blunder { color: #df5353; }
+.glyphs .btn.on { border-color: var(--gold); }
+/* Moves panel: one line at a time, and a key you can read at a glance. */
+.moves-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.moves-head h2 { margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; }
+.seg button { background: transparent; color: var(--muted); border: 0; font: inherit; font-size: 14px; padding: 6px 12px; min-height: 36px; cursor: pointer; }
+.seg button.on { background: var(--panel-2); color: var(--text); box-shadow: inset 0 -2px 0 var(--gold); }
+.move-key { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; padding: 10px 12px; border-radius: 10px; background: var(--panel-2); }
+.move-key .rep-tree { max-height: none; overflow: visible; line-height: 1.6; }
+.key-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 13px; color: var(--text-2); }
+.key-item .tm { cursor: default; padding: 1px 6px; background: var(--panel); }
+.state-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 99px; font-size: 13px; border: 1px solid var(--line-2); }
+.state-pill .dot, .move-key .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.state-pill.new { color: var(--text-2); }
+.state-pill.due { color: #ffb3a8; border-color: #6b3a35; }
+.state-pill.ok { color: #a9e8b6; border-color: #2f5a3a; }
+.move-key .dot.new { background: #8a90a0; }
+.move-key .dot.due { background: #ff8a80; }
+.move-key .dot.ok { background: #7bd88f; }
+.move-key .rep-help { margin: 0; }
+.move-key .rep-help summary { min-height: 28px; }
+.key-glyphs span { margin-right: 10px; white-space: nowrap; }
+.line-view { line-height: 2.1; }
+.line-view .alts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0 6px 0 2px; font-size: 13px; }
+.alt-move { background: transparent; border: 1px dashed var(--line-2); color: var(--text-2); border-radius: 99px; padding: 0 8px; font: inherit; font-size: 13px; cursor: pointer; line-height: 1.7; }
+.alt-move:hover { border-color: var(--gold); color: var(--text); }
+.alt-move.mine { font-weight: 600; }

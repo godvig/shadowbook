@@ -1,0 +1,21 @@
+[Event "London System"]
+[Orientation "white"]
+[Pitch "One setup against almost everything: d4, Bf4, e3, c3 and a solid, easy middle game."]
+
+1. d4 { Take the centre with the queen's pawn. } 1... d5
+( 1... Nf6 2. Bf4 { The London bishop comes out before e3 shuts it in. } 2... g6
+3. e3 { Support d4 and open a path for the other bishop. } 3... Bg7
+4. Nf3 { Develop and control e5. } 4... O-O
+5. Be2 { A safe square; against ...g6 the bishop has little to do on d3. } 5... d6
+6. h3 { Give the bishop on f4 a retreat on h2 if ...Nh5 or ...e5 comes. } )
+2. Bf4 { The London bishop comes out before e3 shuts it in. } 2... Nf6
+( 2... c5 3. e3 { Keep d4 protected; the centre holds. } 3... Nc6
+4. c3 { The London pyramid: d4 is now rock solid. } 4... Nf6
+5. Nd2 { This knight goes to d2 so the queen keeps an eye on b3 and c2. } 5... e6
+6. Ngf3 { Develop and control e5. } 6... Bd6 )
+3. e3 { Support d4 and open a path for the other bishop. } 3... e6
+4. Nf3 { Develop and control e5. } 4... c5
+5. c3 { The London pyramid: d4 is now rock solid. } 5... Nc6
+6. Nbd2 { This knight goes to d2 so the queen keeps an eye on b3 and c2. } 6... Bd6
+7. Bg3 { Keep the bishop: if Black takes on g3, the h-file opens for you. } 7... O-O
+8. Bd3 { Aim at h7 and get ready to castle. } *

@@ -18,7 +18,8 @@ export type DeckSource =
   | { kind: 'pgn' }
   | { kind: 'lichess'; studyId: string; chapterId?: string; url: string; studyName?: string }
   | { kind: 'starter'; starterId: string }
-  | { kind: 'games'; site: 'chesscom' | 'lichess'; username: string; builtAt: string };
+  /** `opening` is the family the deck was grouped by ("Sicilian Defense", or "" for the other lines). */
+  | { kind: 'games'; site: 'chesscom' | 'lichess'; username: string; builtAt: string; opening: string };
 
 export interface Deck {
   id: string;

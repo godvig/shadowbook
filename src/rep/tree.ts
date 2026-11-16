@@ -5,6 +5,8 @@ import { cardId } from './model/cards';
 import type { Card, Deck, Edge, Glyph } from './model/types';
 
 export interface TreeNode {
+  /** The position before this move. */
+  from: string;
   uci: string;
   san: string;
   ply: number;
@@ -32,6 +34,7 @@ export function buildTree(deck: Pick<Deck, 'color'>, edges: Iterable<Edge>, card
       const transposes = expanded.has(e.to);
       expanded.add(e.to);
       return {
+        from,
         uci: e.uci,
         san: e.san,
         ply: ply + 1,

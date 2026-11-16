@@ -1,0 +1,26 @@
+[Event "Italian Game"]
+[Orientation "white"]
+[Pitch "Develop fast, aim your bishop at f7 and build a calm, solid centre."]
+
+1. e4 { Take the centre and open lines for your queen and bishop. } 1... e5
+2. Nf3 { Develop with a threat: the knight attacks e5. } 2... Nc6
+( 2... d6 3. d4 { Against the Philidor, strike in the centre at once. } 3... exd4
+4. Nxd4 { Take back with the knight; it stands well in the centre. } 4... Nf6
+5. Nc3 { Develop and protect e4. } 5... Be7
+6. Be2 { A modest square: the bishop guards the king and nothing can hit it. } 6... O-O
+7. O-O { King safe, rooks connected: now you have more space to work with. } )
+3. Bc4 { The Italian bishop eyes f7, the weakest square in Black's camp. } 3... Bc5
+( 3... Nf6 4. d3 { Protect e4 calmly instead of entering sharp lines with 4.Ng5. } 4... Be7
+5. O-O { Castle early; your plans come later. } 5... O-O
+6. Re1 { The rook supports e4 and the idea d3-d4. } 6... d6
+7. c3 { Prepare d4 and give the bishop a retreat on c2. } )
+( 3... Be7 4. d4 { Black played passively, so take the whole centre. } 4... d6
+5. Nc3 { Develop and keep e4 protected. } 5... Nf6
+6. h3 { Keep the bishop out of g4 before you castle. } 6... O-O
+7. O-O { Castle; you have more space and an easy game. } )
+4. c3 { Prepare d4 and give the bishop a way back to c2 or b3. } 4... Nf6
+5. d3 { The slow Italian: protect e4 and keep the tension. } 5... d6
+6. O-O { King to safety before anything else. } 6... O-O
+7. Re1 { The rook backs up e4 and the later d3-d4. } 7... a6
+8. Bb3 { Step back before ...b5 or ...Na5 can hit the bishop. } 8... Ba7
+9. h3 { Stop ...Bg4 and ...Ng4; later Nbd2-f1-g3 follows. } *

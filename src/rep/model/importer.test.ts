@@ -73,7 +73,9 @@ describe('importing a study', () => {
     expect(r.lib.edges.length).toBe(first.lib.edges.length + 2);
     const afterBc5 = r.lib.edges.find((e) => e.san === 'Bc5')!.to;
     expect(r.lib.edges.filter((e) => e.from === afterBc5).map((e) => [e.san, e.rank])).toEqual([['c3', 0], ['d3', 1]]);
-    expect(d.mainDiffers).toEqual(['1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3: the study plays 4.d3 instead']);
+    expect(d.mainDiffers).toEqual([
+      { from: afterBc5, line: '1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3', ours: { uci: 'c2c3', san: '4.c3' }, theirs: { uci: 'd2d3', san: '4.d3' } },
+    ]);
     expect(d.missing).toContain('1.e4 e5 2.Nf3 Nc6 3.Bc4 Nf6');
     expect(d.missing).toContain('1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3');
     // Ours win; the study only fills what is empty here.

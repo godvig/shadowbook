@@ -49,6 +49,22 @@ Requires Node 20+. `npm run build` produces a static site in `dist/` that can be
 
 ![Scouting report](docs/scouting.png)
 
+### Library – train your own openings
+
+Your openings, trained with spaced repetition ([FSRS](https://github.com/open-spaced-repetition/ts-fsrs)) and stored only
+in your browser.
+
+- **Build decks from your own games** – type your chess.com or Lichess username and Shadowbook turns what you actually
+  play into decks, one per opening, with how often you played each move and how you scored with it. Fix a move before it
+  becomes a card.
+- **Import a Lichess study or a PGN** – one deck per chapter, with its notes, move signs and arrows. Importing it again
+  adds what is new and never overwrites your own changes.
+- **Eight starter openings** – four for White, four for Black, every move with the idea behind it.
+- **A workbench for each deck** – play moves on the board for either side, add signs (`!`, `?!` …), notes and arrows,
+  and choose your main move.
+- **Your book vs theirs** – before a game, see where your repertoire meets a scouted opponent's openings and drill those
+  positions.
+
 ### Shadowbook Live – the World Championship match hub
 
 A second tab built for Gukesh vs Sindarov (Geneva, 2026): a place to follow the match, call every game and talk about it.
@@ -83,6 +99,7 @@ src/
     review.ts    debrief: Maia3's value head scores each of your moves at your rating
     storage.ts   IndexedDB cache of scouted players
     counter.ts   anonymous visit counting: what is sent, and when nothing is
+  rep/           the Library: decks, PGN in and out, FSRS cards, decks built from your games (model/ is pure TypeScript)
   live/          the match hub: Lichess login (PKCE), Supabase client, match logic, chat, stats, share cards, calendar
   views/         Home → Report → Game → Debrief, and Match
   components/    Board (Lichess' Chessground)
@@ -113,7 +130,7 @@ supabase/
 
 ```bash
 npm test           # Vitest: PGN parsing, book building, bot move selection, presets, match logic,
-                   # broadcast sync, chat, stats, share cards, calendar files
+                   # broadcast sync, chat, stats, share cards, calendar files, the Library's model and storage
 npm run typecheck
 npm run lint
 ```
@@ -131,6 +148,10 @@ CI runs all three on every push.
 - [ ] Stockfish analysis next to Maia in the debrief
 - [x] Installable app (PWA) with shortcuts to Match and Spar
 - [ ] Offline sparring with the cached Maia model
+
+## How it is built
+
+Shadowbook is built with AI assistance (Claude Code). The architecture and the decisions are Adam Englund's.
 
 ## License
 

@@ -138,12 +138,14 @@ export function gameFromLichess(j: LichessGame): Game | null {
 }
 
 /** Streams up to `max` games from the Lichess export API (no token needed). */
-export async function fetchLichess(username: string, opts: FetchOptions & { max?: number } = {}): Promise<Game[]> {
+export async function fetchLichess(username: string, opts: FetchOptions & { max?: number; since?: number } = {}): Promise<Game[]> {
   const user = encodeURIComponent(username.trim());
   opts.onProgress?.('Downloading games from Lichess…');
+  // `since` (Unix ms) limits the export to games played after it; without it, the newest `max` games.
+  const since = opts.since ? `&since=${Math.floor(opts.since)}` : '';
   let res: Response;
   try {
-    res = await fetch(`https://lichess.org/api/games/user/${user}?max=${opts.max ?? 800}&moves=true&clocks=false&evals=false&opening=false`, {
+    res = await fetch(`https://lichess.org/api/games/user/${user}?max=${opts.max ?? 800}${since}&moves=true&clocks=false&evals=false&opening=false`, {
       headers: { Accept: 'application/x-ndjson' },
       signal: opts.signal,
     });

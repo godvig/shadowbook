@@ -1,0 +1,33 @@
+[Event "Caro-Kann Defence"]
+[Orientation "black"]
+[Pitch "Solid and safe: ...c6 and ...d5, with your light-squared bishop developed outside the pawn chain."]
+
+1. e4 c6 { Prepare ...d5 while keeping the c8 bishop free. }
+2. d4 ( 2. Nc3 d5 { Challenge e4 at once. }
+3. Nf3 Bg4 { Pin the knight before ...e6. }
+4. h3 Bxf3 { Take the knight: your pawns will be very solid. }
+5. Qxf3 e6 { Solid: the centre holds and the bishop on f8 is free. }
+6. d4 Nf6 { Develop and attack e4. }
+7. Bd3 dxe4 { Trade in the centre to free your position. }
+8. Nxe4 Nxe4 { Trade a pair of knights. }
+9. Qxe4 Nd7 { Develop; ...Nf6 and ...Be7 come next. } )
+2... d5 { Challenge e4 at once. }
+3. Nc3 ( 3. Nd2 dxe4 { Take on e4, as against 3.Nc3. }
+4. Nxe4 ) ( 3. e5 Bf5 { Against the Advance, develop the bishop before ...e6. }
+4. Nf3 e6 { Solid: the bishop is outside the chain and f8 is open. }
+5. Be2 c5 { Attack the base of the chain. }
+6. Be3 cxd4 { Trade on d4 before White adds more support. }
+7. Nxd4 Ne7 { Heading for c6 or g6, without blocking the bishop. } )
+( 3. exd5 cxd5 { Against the Exchange, take back with the c-pawn for a solid centre. }
+4. Bd3 Nc6 { Develop and keep an eye on d4. }
+5. c3 Nf6 { Develop and control e4. }
+6. Bf4 Bg4 { Develop the bishop actively before ...e6. }
+7. Nf3 e6 { Solid: now the f8 bishop is free. } )
+3... dxe4 { Take on e4; your bishop comes out with tempo. }
+4. Nxe4 Bf5 { The Classical: develop with a hit on the knight. }
+5. Ng3 Bg6 { Keep the bishop on the diagonal. }
+6. h4 h6 { Make room for the bishop on h7. }
+7. Nf3 Nd7 { Stop Ne5 and prepare ...Ngf6. }
+8. h5 Bh7 { The bishop is safe on h7. }
+9. Bd3 Bxd3 { Trade the bishops; your position is solid. }
+10. Qxd3 e6 { Open the f8 bishop; castle next. } *

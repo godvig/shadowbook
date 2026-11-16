@@ -19,7 +19,17 @@ export interface DeckImport {
   /** Re-import only: moves the deck has that the source no longer has. */
   missing: string[];
   /** Re-import only: positions where the source's main move is not yours. */
-  mainDiffers: string[];
+  mainDiffers: MainDiffers[];
+}
+
+/** A position where the source's main move is not the deck's. The source's move is in the deck as an alternative. */
+export interface MainDiffers {
+  from: string;
+  /** The line up to and including your main move, e.g. "1.e4 e5 2.Nf3". */
+  line: string;
+  /** Both SANs carry their move number, e.g. "2.Nc3". */
+  ours: { uci: string; san: string };
+  theirs: { uci: string; san: string };
 }
 
 export interface ImportResult {
@@ -47,7 +57,13 @@ function pathsTo(edges: Edge[]): Map<string, string[]> {
   return out;
 }
 
-function merge(deck: Deck, edges: Edge[], game: ParsedGame, now: Date): { deck: Deck; edges: Edge[]; added: number; updated: number; missing: string[]; mainDiffers: string[] } {
+/** Merges a source's moves into a deck (see the rules at the top). Also used when a deck is built again from games. */
+export function mergeEdges(
+  deck: Deck,
+  edges: Edge[],
+  game: Pick<ParsedGame, 'edges' | 'intro'>,
+  now: Date,
+): { deck: Deck; edges: Edge[]; added: number; updated: number; missing: string[]; mainDiffers: MainDiffers[] } {
   const out = [...edges];
   const index = new Map(out.map((e, i) => [`${e.from}|${e.uci}`, i]));
   let added = 0;
@@ -78,12 +94,13 @@ function merge(deck: Deck, edges: Edge[], game: ParsedGame, now: Date): { deck: 
   const missing = edges.filter((e) => !parsedKeys.has(`${e.from}|${e.uci}`)).map((e) => say(e.from, e.uci));
   const theirs = childrenOf(game.edges);
   const ours = childrenOf(edges);
-  const mainDiffers: string[] = [];
+  const mainDiffers: MainDiffers[] = [];
   for (const [from, list] of ours) {
     const mine = list.find((e) => e.mine);
     const main = theirs.get(from)?.[0];
     if (mine && main && turnOf(from) === deck.color && main.uci !== mine.uci) {
-      mainDiffers.push(`${say(from, mine.uci)}: the study plays ${say(from, main.uci).split(' ').pop()} instead`);
+      const line = say(from, mine.uci);
+      mainDiffers.push({ from, line, ours: { uci: mine.uci, san: line.split(' ').pop()! }, theirs: { uci: main.uci, san: say(from, main.uci).split(' ').pop()! } });
     }
   }
   return { deck: { ...deck, intro: deck.intro || game.intro, updatedAt: now.toISOString() }, edges: out, added, updated, missing, mainDiffers };
@@ -125,7 +142,7 @@ export function importText(lib: LibraryData, text: string, opts: ImportOptions):
     const source = opts.source(game);
     const at = decks.findIndex((d) => d.color === color && sameSource(d.source, source));
     if (at >= 0) {
-      const m = merge(decks[at], edgesByDeck.get(decks[at].id) ?? [], game, now);
+      const m = mergeEdges(decks[at], edgesByDeck.get(decks[at].id) ?? [], game, now);
       decks[at] = m.deck;
       edgesByDeck.set(m.deck.id, m.edges);
       touched.add(m.deck.id);
@@ -168,7 +185,7 @@ export function importMessage(r: ImportResult): string[] {
   for (const d of again) {
     const what = [d.added && `${n(d.added, 'new move')}`, d.updated && `${n(d.updated, 'move')} with new signs or notes`].filter(Boolean).join(', ');
     lines.push(`Updated “${d.deck.name}”: ${what || 'nothing new'}.`);
-    for (const m of d.mainDiffers) lines.push(`Main move kept, ${m}.`);
+    for (const m of d.mainDiffers) lines.push(`Main move kept, ${m.line}: the study plays ${m.theirs.san} instead.`);
     for (const m of d.missing) lines.push(`Not in the study any more (kept here): ${m}.`);
   }
   if (!r.decks.length) lines.push('Nothing to import: no moves from the normal start position.');

@@ -1,0 +1,30 @@
+[Event "French Defence"]
+[Orientation "black"]
+[Pitch "A solid pawn chain: let White have space, then attack the base of it with ...c5 and ...f6."]
+
+1. e4 e6 { Prepare ...d5 with a pawn behind it. }
+2. d4 d5 { Challenge e4 at once. }
+3. Nc3 ( 3. e5 c5 { Against the Advance, attack the base of the chain at d4. }
+4. c3 Nc6 { Develop with more pressure on d4. }
+5. Nf3 Qb6 { Third attacker on d4, and the queen eyes b2. }
+6. Be2 cxd4 { Trade so White must retake with the c-pawn. }
+7. cxd4 Nh6 { Heading for f5, where the knight hits d4. } )
+( 3. exd5 exd5 { Against the Exchange, take back with the pawn: the position is symmetrical. }
+4. Nf3 Nf6 { Develop and control e4. }
+5. Bd3 Bd6 { Mirror White and keep the position balanced. }
+6. O-O O-O { Castle; the game is level. } )
+( 3. Nd2 Be7 { Against the Tarrasch, a calm setup that waits for White to commit. }
+4. Ngf3 Nf6 { Develop and attack e4. }
+5. e5 Nfd7 { The knight steps back, ready for ...c5. }
+6. Bd3 c5 { Attack the base of the chain. }
+7. c3 Nc6 { More pressure on d4. } )
+3... Nf6 { The Classical: attack e4 again. }
+4. e5 ( 4. Bg5 Be7 { Break the pin calmly. }
+5. e5 Nfd7 { The knight steps back, ready for ...c5. }
+6. Bxe7 Qxe7 { Take back with the queen; the dark squares are fine. }
+7. f4 O-O { Castle; ...c5 and ...f6 are your plans. } )
+4... Nfd7 { The knight steps back, ready for ...c5. }
+5. f4 c5 { Attack the base of the chain at d4. }
+6. Nf3 Nc6 { Develop with more pressure on d4. }
+7. Be3 cxd4 { Trade so the knight has to take back on d4. }
+8. Nxd4 Bc5 { Develop with a hit on the knight on d4. } *

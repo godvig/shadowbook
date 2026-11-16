@@ -11,6 +11,7 @@ import type { LibraryStart } from './views/Library';
 import { isOAuthReturn } from './live/lichessAuth';
 import { MATCH_PAGES, MATCH_PATH, isMatchPath, matchLang } from './live/routes';
 import { countView } from './lib/counter';
+import { isLibraryHash } from './rep/route';
 
 // The Library (and its opening names) loads only when opened, so Spar and Match do not carry it.
 const Library = lazy(() => import('./views/Library').then((m) => ({ default: m.Library })));
@@ -26,7 +27,7 @@ type View =
 
 function viewFromLocation(): View {
   if (location.hash === '#privacy') return { name: 'privacy' };
-  if (location.hash === '#library') return { name: 'library' };
+  if (isLibraryHash(location.hash)) return { name: 'library' };
   if (isMatchPath(location.pathname) || location.hash === '#match' || isOAuthReturn()) return { name: 'match' };
   return { name: 'home' };
 }
@@ -42,7 +43,8 @@ export default function App() {
     if (v.name === 'match') {
       if (!onMatch) history.pushState(null, '', MATCH_PATH);
     } else {
-      const target = v.name === 'privacy' ? '/#privacy' : v.name === 'library' ? '/#library' : '/';
+      // The Library keeps its own address below #library (rep/route.ts) when it is already showing.
+      const target = v.name === 'privacy' ? '/#privacy' : v.name === 'library' ? (v.start || v.key || !isLibraryHash(location.hash) ? '/#library' : `/${location.hash}`) : '/';
       if (onMatch) history.pushState(null, '', target);
       else if (`${location.pathname}${location.hash}` !== target) history.replaceState(null, '', target);
     }
@@ -53,7 +55,8 @@ export default function App() {
     if (!isMatchPath(location.pathname) && (location.hash === '#match' || isOAuthReturn())) {
       history.replaceState(null, '', `${MATCH_PATH}${location.search}`);
     }
-    const onPop = () => setViewRaw(viewFromLocation());
+    // Back and Forward inside the Library are handled by the Library itself, without loading it again.
+    const onPop = () => setViewRaw((v) => (v.name === 'library' && isLibraryHash(location.hash) ? v : viewFromLocation()));
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -99,7 +102,11 @@ export default function App() {
           <button className={view.name === 'match' ? 'on' : ''} aria-current={view.name === 'match' ? 'page' : undefined} onClick={() => setView({ name: 'match' })}>
             Match <span className="live-pill">Live</span>
           </button>
-          <button className={view.name === 'library' ? 'on' : ''} aria-current={view.name === 'library' ? 'page' : undefined} onClick={() => setView({ name: 'library' })}>
+          <button
+            className={view.name === 'library' ? 'on' : ''}
+            aria-current={view.name === 'library' ? 'page' : undefined}
+            onClick={() => setView({ name: 'library', key: view.name === 'library' ? Date.now() : undefined })}
+          >
             Library
           </button>
         </nav>

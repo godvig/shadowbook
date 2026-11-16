@@ -1,0 +1,25 @@
+[Event "Sicilian Defence"]
+[Orientation "black"]
+[Pitch "Fight for the centre from the side: an unbalanced game with chances for Black, played in a flexible Taimanov style."]
+
+1. e4 c5 { Fight for d4 from the side and unbalance the game. }
+2. Nf3 ( 2. Nc3 Nc6 { Develop and watch d4. }
+3. g3 g6 { Mirror the fianchetto; your bishop will aim at the long diagonal. }
+4. Bg2 Bg7 { The bishop eyes the queenside and the centre. }
+5. d3 d6 { A solid setup; ...e5 or ...Rb8 and ...b5 come later. } )
+( 2. c3 Nf6 { Against the Alapin, attack e4 right away. }
+3. e5 Nd5 { The knight is safe in the centre. }
+4. d4 cxd4 { Trade on d4 before White can support it with c3. }
+5. Nf3 Nc6 { Develop and put pressure on d4 and e5. }
+6. cxd4 d6 { Challenge e5 and free your bishop. } )
+2... Nc6 { Develop and keep the option of ...e6 or ...g6. }
+3. d4 ( 3. Bb5 g6 { Against the Rossolimo, fianchetto: the bishop will hit the centre. }
+4. O-O Bg7 { The bishop on the long diagonal is your best piece. }
+5. Re1 Nf6 { Develop and attack e4. }
+6. c3 O-O { Castle; ...d5 or ...e5 can follow. } )
+3... cxd4 { Trade a wing pawn for a centre pawn: the point of the Sicilian. }
+4. Nxd4 e6 { The Taimanov: control d5 and keep the bishop free. }
+5. Nc3 Qc7 { The queen watches e5 and the c-file. }
+6. Be3 a6 { Keep White's pieces off b5. }
+7. Bd3 Nf6 { Develop and attack e4. }
+8. O-O Ne5 { Hit the bishop on d3, a typical Taimanov idea. } *

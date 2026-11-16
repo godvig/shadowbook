@@ -100,6 +100,25 @@ export function compactRanks(edges: Edge[]): Edge[] {
   return edges.map((e) => (ranks.get(e) === e.rank ? e : { ...e, rank: ranks.get(e)! }));
 }
 
+/** Changes the sign, note or shapes of one move. */
+export function updateEdge(edges: Edge[], from: string, uci: string, patch: Partial<Pick<Edge, 'glyph' | 'comment' | 'shapes'>>): Edge[] {
+  return edges.map((e) => (e.from === from && e.uci === uci ? { ...e, ...patch } : e));
+}
+
+/** The position every line of the deck goes through last: where the shared moves end. The start for an empty deck. */
+export function signatureFen(edges: Iterable<Edge>): string {
+  const kids = childrenOf(edges);
+  const seen = new Set([START_KEY]);
+  let fen = START_FEN;
+  let next = kids.get(START_KEY);
+  while (next?.length === 1 && !seen.has(next[0].to)) {
+    fen = next[0].toFen;
+    seen.add(next[0].to);
+    next = kids.get(next[0].to);
+  }
+  return fen;
+}
+
 /** The main line: rank-0 moves from the start position, until a leaf or a repeated position. */
 export function mainLine<T extends Pick<Edge, 'from' | 'to' | 'rank'>>(edges: Iterable<T>): T[] {
   const kids = childrenOf(edges);

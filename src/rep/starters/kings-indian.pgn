@@ -1,0 +1,25 @@
+[Event "King's Indian Defence"]
+[Orientation "black"]
+[Pitch "Let White build a big centre, castle behind a fianchetto and strike back with ...e5."]
+
+1. d4 Nf6 { Develop and keep e4 under control. }
+2. c4 ( 2. Nf3 g6 { Fianchetto the bishop. }
+3. g3 Bg7 { The bishop aims at the long diagonal. }
+4. Bg2 O-O { Castle early behind the fianchetto. }
+5. O-O d6 { Prepare ...e5 or ...c5. } )
+( 2. Bf4 g6 { Against the London, fianchetto all the same. }
+3. e3 Bg7 { The bishop on the long diagonal. }
+4. Nf3 O-O { Castle early. }
+5. Be2 d6 { Prepare ...c5 or ...e5. }
+6. h3 c5 { Strike at d4 while White is slow. } )
+2... g6 { The King's Indian: fianchetto and let White take the centre. }
+3. Nc3 ( 3. g3 Bg7 { The bishop on the long diagonal. }
+4. Bg2 O-O { Castle early. }
+5. Nf3 d6 { Prepare ...e5. }
+6. O-O Nbd7 { Support ...e5. } )
+3... Bg7 { The bishop on the long diagonal. }
+4. e4 d6 { Stop e5 and prepare ...e5. }
+5. Nf3 O-O { Castle before the centre opens. }
+6. Be2 e5 { Strike back in the centre: the key move of the King's Indian. }
+7. O-O Nc6 { Develop with more pressure on d4. }
+8. d5 Ne7 { Make way for ...f5, your attack on the kingside. } *
