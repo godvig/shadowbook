@@ -208,6 +208,7 @@ const attr = (s) => esc(s).replace(/"/g, '&quot;');
 function structuredData(page) {
   const challenger = { '@type': 'Person', name: 'Javokhir Sindarov' };
   if (page.challengerAlias) challenger.alternateName = page.challengerAlias;
+  const players = [{ '@type': 'Person', name: 'Gukesh Dommaraju' }, challenger];
   return [
     {
       '@context': 'https://schema.org',
@@ -225,7 +226,9 @@ function structuredData(page) {
         address: { '@type': 'PostalAddress', addressLocality: 'Cologny, Geneva', addressCountry: 'CH' },
       },
       organizer: { '@type': 'Organization', name: 'FIDE', url: 'https://www.fide.com/' },
-      competitor: [{ '@type': 'Person', name: 'Gukesh Dommaraju' }, challenger],
+      competitor: players,
+      // Google's event report reads `performer`; schema.org's SportsEvent uses `competitor`. Same two people.
+      performer: players,
       image: `${SITE}/og.png`,
       url: url(page),
       description: page.description,
