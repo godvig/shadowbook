@@ -1,0 +1,73 @@
+[Event "Fixture Openings: Italian ideas"]
+[Date "2026.01.05"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "C50"]
+[Opening "Italian Game"]
+[StudyName "Fixture Openings"]
+[ChapterName "Italian ideas"]
+[ChapterURL "https://lichess.org/study/Sb0Fix01/ChapWh01"]
+[Annotator "https://lichess.org/@/Fixture_Author_0"]
+[UTCDate "2026.01.05"]
+[UTCTime "10:00:00"]
+[Orientation "white"]
+
+{ An intro comment before the first move.
+
+It has two paragraphs, says wow!! in plain text; and has a semicolon inside the braces. } 1. e4 { [%anno "Fixture Author", fixture_author_0] Take the centre. } { [%clk 0:10:00] } 1... e5 { [%clk 0:10:00] } 2. Nf3! { [%csl Ge5][%cal Gf3e5] } 2... Nc6 (2... d6 3. d4 { [%cal Gd4e5] [%clk 0:09:50] }) (2... Nf6 3. Nxe5 $14) 3. Bc4 { Aim at f7. } { [%cal Rc4f7,Bd1h5] } 3... Bc5 (3... Nf6 4. d3 (4. Ng5?! d5 5. exd5 Na5 $132) 4... Be7 5. O-O) 4. c3 { 1-0 inside a comment is not a result. } 4... Nf6 5. d4!? exd4 6. cxd4 Bb4+ 7. Bd2 Bxd2+ 8. Nbxd2 d5?! { [%csl Yd5] } 9. exd5 Nxd5 10. Qb3 $16 *
+
+
+[Event "Fixture Openings: Caro-Kann sketch"]
+[Date "2026.01.06"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "B12"]
+[Opening "Caro-Kann Defense: Advance Variation"]
+[StudyName "Fixture Openings"]
+[ChapterName "Caro-Kann sketch"]
+[ChapterURL "https://lichess.org/study/Sb0Fix01/ChapBk02"]
+[Annotator "https://lichess.org/@/Fixture_Author_0"]
+[UTCDate "2026.01.06"]
+[UTCTime "10:05:00"]
+[Orientation "black"]
+
+1. e4 c6 2. d4 d5 3. e5 (3. Nc3 dxe4 4. Nxe4 Bf5 { [%eval 0.31] Same bishop as in the Advance. }) (3. exd5 cxd5 4. c4 (4. Bd3 Nc6) 4... Nf6) 3... Bf5! { [%cal Gc8f5] } 4. Nf3 (4. g4 Be4 5. f3 Bg6 $132 { [%csl Rh1,Rg6] }) (4. h4 h5) 4... e6 5. Be2 c5!! { Overstated sign, here for parser tests. } 6. O-O Nc6 7. c3 *
+
+
+[Event "Fixture Openings: London transposition"]
+[Date "2026.01.07"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "D02"]
+[Opening "Queen's Pawn Game: London System"]
+[StudyName "Fixture Openings"]
+[ChapterName "Chapter 3"]
+[ChapterURL "https://lichess.org/study/Sb0Fix01/ChapLn03"]
+[Annotator "https://lichess.org/@/Fixture_Author_0"]
+[UTCDate "2026.01.07"]
+[UTCTime "10:10:00"]
+[Orientation "white"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 (3. Nf3 e6 4. e3) 3... e6 4. Nf3 c5 5. c3 *
+
+
+[Event "Fixture Openings: Pawn ending"]
+[Date "2026.01.08"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Fixture Openings"]
+[ChapterName "Pawn ending"]
+[ChapterURL "https://lichess.org/study/Sb0Fix01/ChapFn04"]
+[Annotator "https://lichess.org/@/Fixture_Author_0"]
+[UTCDate "2026.01.08"]
+[UTCTime "10:15:00"]
+[FEN "8/5pk1/6p1/8/8/6P1/5PK1/8 b - - 0 40"]
+[SetUp "1"]
+[Orientation "black"]
+[ChapterMode "gamebook"]
+
+{ [%anno "Fixture Author", fixture_author_0] A chapter from a custom position. The Library skips it. } 40... f5 41. Kf3 Kf6 *
+
+

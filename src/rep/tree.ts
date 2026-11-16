@@ -1,8 +1,8 @@
-// The repertoire as a move tree, built from every recorded path (line + your move).
-import { Chess } from 'chess.js';
-import { playUci, START_FEN } from '../lib/chess';
-import type { Color } from '../lib/types';
-import type { RepEntry } from './repertoire';
+// A deck as a move tree. Each position is shown once: a line that transposes into a position already shown ends
+// there, marked as a transposition.
+import { childrenOf, START_KEY } from './model/deck';
+import { cardId } from './model/cards';
+import type { Card, Deck, Edge, Glyph } from './model/types';
 
 export interface TreeNode {
   uci: string;
@@ -10,41 +10,41 @@ export interface TreeNode {
   ply: number;
   /** Line from the start up to and including this move. */
   line: string[];
-  /** Set on your own moves: the card this move belongs to, and whether it is your main move there. */
-  entry?: RepEntry;
-  main?: boolean;
+  /** Your move (the deck's side). */
+  mine: boolean;
+  /** Your main move at that position. */
+  main: boolean;
+  glyph?: Glyph;
+  /** On your main move: its card, for the new / due / learned dot. */
+  card?: Card;
+  /** The position after this move is shown elsewhere in the tree. */
+  transposes: boolean;
   children: TreeNode[];
 }
 
-export function buildTree(entries: Iterable<RepEntry>, color: Color): TreeNode[] {
-  const root: TreeNode = { uci: '', san: '', ply: 0, line: [], children: [] };
-  const mine = [...entries].filter((e) => e.color === color).sort((a, b) => a.line.length - b.line.length);
-  const insert = (path: string[], entry: RepEntry, uci: string) => {
-    let node = root;
-    const chess = new Chess(START_FEN);
-    path.forEach((u, i) => {
-      let child = node.children.find((c) => c.uci === u);
-      const san = playUci(chess, u).san;
-      if (!child) {
-        child = { uci: u, san, ply: i + 1, line: path.slice(0, i + 1), children: [] };
-        node.children.push(child);
-      }
-      if (i === path.length - 1 && u === uci) {
-        child.entry = entry;
-        child.main = entry.moves[0] === uci;
-      }
-      node = child;
+export function buildTree(deck: Pick<Deck, 'color'>, edges: Iterable<Edge>, cards: Map<string, Card>): TreeNode[] {
+  const kids = childrenOf(edges);
+  const expanded = new Set<string>([START_KEY]);
+  const grow = (from: string, line: string[], ply: number): TreeNode[] =>
+    (kids.get(from) ?? []).map((e) => {
+      const path = [...line, e.uci];
+      const main = e.mine && e.rank === 0;
+      const transposes = expanded.has(e.to);
+      expanded.add(e.to);
+      return {
+        uci: e.uci,
+        san: e.san,
+        ply: ply + 1,
+        line: path,
+        mine: e.mine,
+        main,
+        glyph: e.glyph,
+        card: main ? cards.get(cardId(deck.color, from, e.uci)) : undefined,
+        transposes: transposes && kids.has(e.to),
+        children: transposes ? [] : grow(e.to, path, ply + 1),
+      };
     });
-  };
-  for (const e of mine) for (const m of e.moves) insert([...e.line, m], e, m);
-  // Your main move first, then alternatives; their replies with the most preparation first.
-  const size = (n: TreeNode): number => 1 + n.children.reduce((s, c) => s + size(c), 0);
-  const sort = (n: TreeNode) => {
-    n.children.sort((a, b) => Number(!!b.main) - Number(!!a.main) || (a.entry || b.entry ? 0 : size(b) - size(a)));
-    n.children.forEach(sort);
-  };
-  sort(root);
-  return root.children;
+  return grow(START_KEY, [], 0);
 }
 
 export const moveNumber = (ply: number) => `${Math.ceil(ply / 2)}${ply % 2 ? '.' : '…'}`;

@@ -16,6 +16,10 @@ export function Privacy({ onBack }: { onBack: () => void }) {
         Shadowbook stores as little as it can. The sparring tool keeps everything in your own browser. The match hub stores your Lichess username and
         what you post or predict, so the leaderboard and the chat work. You can download or delete all of it yourself, at any time, from the Match tab.
       </p>
+      <p>
+        The Library is stored only in this browser, and nothing from it is sent anywhere. A visit to it is counted as /library, never with a deck
+        name.
+      </p>
 
       <h2>Who runs this</h2>
       <p>

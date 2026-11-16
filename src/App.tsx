@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Home } from './views/Home';
 import { Report } from './views/Report';
 import { Game, type GameSettings, type FinishedGame } from './views/Game';
@@ -7,10 +7,13 @@ import type { Opponent } from './lib/opponent';
 import { Logo } from './components/Logo';
 import { Match } from './views/Match';
 import { Privacy } from './views/Privacy';
-import { Library, type LibraryStart } from './views/Library';
+import type { LibraryStart } from './views/Library';
 import { isOAuthReturn } from './live/lichessAuth';
 import { MATCH_PAGES, MATCH_PATH, isMatchPath, matchLang } from './live/routes';
 import { countView } from './lib/counter';
+
+// The Library (and its opening names) loads only when opened, so Spar and Match do not carry it.
+const Library = lazy(() => import('./views/Library').then((m) => ({ default: m.Library })));
 
 type View =
   | { name: 'home' }
@@ -64,7 +67,7 @@ export default function App() {
       view.name === 'match'
         ? MATCH_PAGES[matchLang(location.pathname) ?? 'en'].title
         : view.name === 'library'
-          ? 'Library – opening repertoire training · Shadowbook'
+          ? 'Library – Shadowbook'
           : view.name === 'privacy'
           ? 'Privacy | Shadowbook'
           : 'Shadowbook – spar against the openings of a real player';
@@ -104,7 +107,11 @@ export default function App() {
         <a className="gh" href="https://github.com/godvig/shadowbook">GitHub</a>
       </header>
       <main className="page">
-        {view.name === 'library' && <Library key={view.key} opponent={opponent} start={view.start} />}
+        {view.name === 'library' && (
+          <Suspense fallback={<div className="card rep-wrap"><p className="muted">Opening your library…</p></div>}>
+            <Library key={view.key} opponent={opponent} start={view.start} />
+          </Suspense>
+        )}
         {view.name === 'privacy' && <Privacy onBack={() => setView({ name: 'match' })} />}
         {view.name === 'match' && noteLang && (
           <p className="lang-note" lang={noteLang}>

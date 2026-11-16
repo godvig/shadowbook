@@ -2,10 +2,10 @@ import { State } from 'ts-fsrs';
 import { moveNumber, type TreeNode } from './tree';
 
 function status(n: TreeNode, now: Date) {
-  if (!n.entry) return '';
-  const c = n.entry.card;
+  if (!n.card) return '';
+  const c = n.card.fsrs;
   if (c.state === State.New) return 'new';
-  return new Date(c.due) <= now ? 'due' : 'ok';
+  return c.due <= now ? 'due' : 'ok';
 }
 
 function Seq({ node, onOpen, now, first }: { node: TreeNode; onOpen(line: string[]): void; now: Date; first: boolean }) {
@@ -23,12 +23,14 @@ function Seq({ node, onOpen, now, first }: { node: TreeNode; onOpen(line: string
         return (
           <button
             key={n.line.join(' ')}
-            className={`tm${n.entry ? ' mine' : ''}${n.entry && !n.main ? ' alt' : ''}`}
-            title={n.entry ? (n.main ? 'Your main move' : 'Also accepted') : 'Their move'}
+            className={`tm${n.mine ? ' mine' : ''}${n.mine && !n.main ? ' alt' : ''}`}
+            title={(n.mine ? (n.main ? 'Your main move' : 'Also accepted') : 'Their move') + (n.transposes ? ' · continues elsewhere in the tree' : '')}
             onClick={() => onOpen(n.line)}
           >
             {showNum && <span className="tn">{moveNumber(n.ply)}</span>}
             {n.san}
+            {n.glyph}
+            {n.transposes && <span className="tn"> ⤴</span>}
             {st && <span className={`dot ${st}`} />}
           </button>
         );

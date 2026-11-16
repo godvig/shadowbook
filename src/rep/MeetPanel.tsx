@@ -3,27 +3,30 @@ import { ucisToSanLine } from '../lib/chess';
 import type { Opponent } from '../lib/opponent';
 import type { Color } from '../lib/types';
 import { meet, prepQueue } from './meet';
-import type { RepEntry } from './repertoire';
-import * as store from './store';
+import { ownMoveIndex, type OwnMoveIndex } from './model/deck';
+import { loadLibrary } from './db';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const name = (c: Color) => (c === 'w' ? 'White' : 'Black');
 
 /** "Where your book meets theirs", for both colours. Loads the Library itself when not given one. */
-export function MeetPanel({ opponent, entries: given, onTrain, onFill, compact }: {
+export function MeetPanel({ opponent, own: given, onTrain, onFill, compact }: {
   opponent: Opponent;
-  entries?: Map<string, RepEntry>;
+  own?: OwnMoveIndex;
   onTrain(color: Color): void;
   onFill(color: Color, line: string[]): void;
   compact?: boolean;
 }) {
-  const [loaded, setLoaded] = useState<Map<string, RepEntry> | null>(null);
+  const [loaded, setLoaded] = useState<OwnMoveIndex | null>(null);
   useEffect(() => {
-    if (!given) store.loadAll().then(setLoaded).catch(() => setLoaded(new Map()));
+    if (!given)
+      loadLibrary(new Date().toISOString().slice(0, 10))
+        .then((lib) => setLoaded(ownMoveIndex(lib.decks, lib.edges)))
+        .catch(() => setLoaded(ownMoveIndex([], [])));
   }, [given]);
-  const entries = given ?? loaded;
-  const reports = useMemo(() => (entries ? (['w', 'b'] as Color[]).map((c) => meet(entries, opponent.book, c, opponent.bookPlies)) : []), [entries, opponent]);
-  if (!entries) return null;
+  const own = given ?? loaded;
+  const reports = useMemo(() => (own ? (['w', 'b'] as Color[]).map((c) => meet(own, opponent.book, c, opponent.bookPlies)) : []), [own, opponent]);
+  if (!own) return null;
   const empty = reports.every((r) => !r.size);
 
   return (

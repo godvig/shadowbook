@@ -48,3 +48,7 @@
 .rep-legend i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 .rep-study { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
 .rep-study input { flex: 1; min-width: 220px; min-height: 44px; box-sizing: border-box; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; padding: 0 12px; font: inherit; }
+.rep-pick { display: flex; flex-direction: column; gap: 4px; }
+.rep-pick select { min-height: 44px; max-width: 320px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; padding: 0 12px; font: inherit; }
+.rep-notes { margin: 8px 0 0; padding-left: 18px; }
+.rep-notes li { margin: 2px 0; }

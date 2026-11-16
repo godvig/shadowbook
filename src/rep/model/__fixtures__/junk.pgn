@@ -1,0 +1,15 @@
+[Event "Pasted by hand"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+
+; a comment line before the moves
+1.e4 e5 2.Nf3 $1 Nc6 $6 3.Bb5 a6 4.Ba4 ; rest-of-line comment
+Nf6 5.0-0 Be7 6.Re1 $200 b5 7.Bb3 d6 8.c3 O-O 9.h3 $3 $4 $2 $5 Na5 *
+
+[Event "Broken"]
+[Site "nowhere"
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Qxz9 -- Ke5 ) 5. e3 ( 5. a3 { an unclosed comment
+1-0

@@ -106,6 +106,8 @@ supabase/
   [Lichess](https://lichess.org/broadcast), read with the [Broadcast API](https://lichess.org/api#tag/broadcasts).
   `npm run presets` rebuilds `public/presets/*.json` from the events in
   [`scripts/presets.config.json`](scripts/presets.config.json); each file lists its source events. Run by hand, not in CI.
+- **Opening names:** [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings) (CC0-1.0).
+  `npm run openings` rebuilds `src/rep/model/openings.json` from a pinned commit. Run by hand, not in CI.
 
 ## Tests
 
