@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { sansToUcis } from '../lib/chess';
-import { addPath, newDeck } from './model/deck';
-import { lineThrough } from './LineView';
+import { sansToUcis } from '../../lib/chess';
+import { addPath, newDeck } from './deck';
+import { lineThrough } from './lines';
 
 const deck = newDeck({ name: 'Test', color: 'w', source: { kind: 'board' } });
 let edges = addPath([], deck, sansToUcis(['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5', 'c3']));

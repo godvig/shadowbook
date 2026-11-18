@@ -70,7 +70,7 @@ export function deckDrills(deck: Deck, edges: Edge[], cards: Map<string, Card>):
 }
 
 export const isNew = (c: Card) => c.fsrs.state === State.New;
-const isDue = (c: Card, now: Date) => !isNew(c) && c.fsrs.due.getTime() <= now.getTime();
+export const isDue = (c: Card, now: Date) => !isNew(c) && c.fsrs.due.getTime() <= now.getTime();
 
 /** Deck counts at or after `startMove`. Due includes new cards still inside today's budget (`newLeft`). */
 export function deckCounts(drills: Drill[], now: Date, newLeft: number, startMove = 1) {

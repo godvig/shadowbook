@@ -1,47 +1,34 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Chess } from 'chess.js';
-import type { DrawShape } from '@lichess-org/chessground/draw';
-import type { Key } from '@lichess-org/chessground/types';
-import { Board } from '../components/Board';
-import { fenKey, playUci, START_FEN, ucisToSanLine } from '../lib/chess';
+import { fenKey, playUci, START_FEN } from '../lib/chess';
 import type { Color } from '../lib/types';
 import { AddDialog, type AddPanel } from '../rep/AddDialog';
 import * as db from '../rep/db';
 import { DeckView } from '../rep/DeckView';
 import { backupJson } from '../rep/model/backup';
-import { cardId, deckCounts, deckDrills, drillQueue, gradeCard, isNew, Rating, syncCards, type Drill } from '../rep/model/cards';
-import { newDeck, ownMoveIndex, signatureFen } from '../rep/model/deck';
+import { cardId, deckCounts, deckDrills, drillQueue, gradeCard, isNew, syncCards, type Drill } from '../rep/model/cards';
+import { addPath, makeMain, newDeck, ownMoveIndex, signatureFen } from '../rep/model/deck';
 import { commitBuild } from '../rep/model/fromGames';
 import { V1_DECK_NAME } from '../rep/model/migrateV1';
 import { serializeDeck } from '../rep/model/pgn';
-import type { Deck, Edge, LibraryData } from '../rep/model/types';
+import { linesFor, positionsFor, type Effect } from '../rep/model/session';
+import type { Deck, Edge, LibraryData, Settings } from '../rep/model/types';
 import { meet, prepQueue } from '../rep/meet';
 import { MeetPanel } from '../rep/MeetPanel';
 import { isLibraryHash, parseRoute, routeHash, type LibraryRoute } from '../rep/route';
 import { Shelf, type DeckInfo } from '../rep/Shelf';
 import { STARTERS, starterDeck, type Starter } from '../rep/starters';
+import { Train } from '../rep/Train';
 import type { Opponent } from '../lib/opponent';
 import '../rep/rep.css';
 
 const today = () => new Date().toISOString().slice(0, 10);
-const sanOf = (fen: string, uci: string) => {
-  try {
-    return playUci(new Chess(fen), uci).san;
-  } catch {
-    return uci;
-  }
-};
-const arrow = (uci: string, brush: string): DrawShape => ({ orig: uci.slice(0, 2) as Key, dest: uci.slice(2, 4) as Key, brush });
 
 function positionAfter(line: string[]) {
   const c = new Chess(START_FEN);
   for (const u of line) playUci(c, u);
   return { fen: c.fen(), turn: c.turn() as Color };
 }
-
-type Outcome = 'clean' | 'hint' | 'wrong';
-/** First try without help = Good, with a hint = Hard, wrong or revealed = Again. */
-const ratingFor = (o: Outcome) => (o === 'clean' ? Rating.Good : o === 'hint' ? Rating.Hard : Rating.Again);
 
 export interface LibraryStart {
   prep?: Color;
@@ -66,6 +53,10 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
   const [adding, setAdding] = useState<AddPanel | 'menu' | null>(null);
   /** A message for the shelf, e.g. what was just saved. */
   const [notice, setNotice] = useState('');
+  /** "Start at move" changed in training without "Remember": for this visit only. */
+  const [startFor, setStartFor] = useState<Record<string, number>>({});
+  /** "Train all": the decks in order, and how far along. */
+  const [allOrder, setAllOrder] = useState<{ ids: string[]; at: number } | null>(null);
   const [error, setError] = useState('');
   const handledStart = useRef(false);
 
@@ -93,13 +84,57 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
   };
 
   /** Replaces one deck's moves, then brings the cards in line. */
-  const editDeck = (base: db.Stored, deck: Deck, edges: Edge[]) => {
+  const withEdges = (base: db.Stored, deck: Deck, edges: Edge[]): { next: db.Stored; change: db.Change } => {
     const now = new Date();
     const d = { ...deck, updatedAt: now.toISOString() };
     const decks = base.decks.some((x) => x.id === d.id) ? base.decks.map((x) => (x.id === d.id ? d : x)) : [...base.decks, d];
     const all = [...base.edges.filter((e) => e.deckId !== d.id), ...edges];
     const synced = syncCards(decks, all, base.cards, now);
-    save({ ...base, decks, edges: all, cards: synced.cards }, { decks: [d], edges: [{ deckId: d.id, edges }], cards: synced.added, deleteCards: synced.removed });
+    return { next: { ...base, decks, edges: all, cards: synced.cards }, change: { decks: [d], edges: [{ deckId: d.id, edges }], cards: synced.added, deleteCards: synced.removed } };
+  };
+  const editDeck = (base: db.Stored, deck: Deck, edges: Edge[]) => {
+    const r = withEdges(base, deck, edges);
+    save(r.next, r.change);
+  };
+
+  // Training sends several effects at once; each builds on the library the one before left.
+  const latest = useRef(lib);
+  latest.current = lib;
+  const applyEffects = (effects: Effect[]) => {
+    if (!latest.current) return;
+    let base: db.Stored = latest.current;
+    for (const ef of effects) {
+      if (ef.type === 'grade') {
+        const card = base.cards.find((c) => c.id === ef.cardId);
+        if (!card) continue;
+        const at = new Date();
+        const r = gradeCard(card, ef.rating, { deckId: ef.deckId, mode: ef.mode, retention: base.settings.retention }, at);
+        const wasNew = isNew(card);
+        const decks = base.decks.map((x) => (x.id === ef.deckId ? { ...x, lastTrainedAt: at.toISOString() } : x));
+        const newToday = base.newToday + (wasNew ? 1 : 0);
+        base = { ...base, decks, newToday, cards: base.cards.map((c) => (c.id === r.card.id ? r.card : c)) };
+        db.apply({ cards: [r.card], reviews: [r.review], decks: decks.filter((x) => x.id === ef.deckId), newToday: wasNew ? { day: today(), n: newToday } : undefined }).catch(() => setError('Could not save to this browser.'));
+      } else {
+        const deck = base.decks.find((d) => d.id === ef.deckId);
+        if (!deck) continue;
+        let edges = addPath(base.edges.filter((e) => e.deckId === deck.id), deck, ef.path);
+        if (ef.type === 'makeMain') edges = makeMain(edges, ef.from, ef.uci);
+        const r = withEdges(base, deck, edges);
+        base = r.next;
+        db.apply(r.change).catch(() => setError('Could not save to this browser.'));
+      }
+    }
+    latest.current = base;
+    setLib(base);
+  };
+
+  const changeSettings = (patch: Partial<Settings>) => {
+    const base = latest.current;
+    if (!base) return;
+    const settings = { ...base.settings, ...patch };
+    latest.current = { ...base, settings };
+    setLib(latest.current);
+    db.saveSettings(settings).catch(() => setError('Could not save to this browser.'));
   };
 
   const updateDeck = (base: db.Stored, deck: Deck, patch: Partial<Deck>) => {
@@ -179,32 +214,57 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
   const newLeft = Math.max(0, lib.settings.newPerDay - lib.newToday);
   const drillsOf = (d: Deck) => deckDrills(d, edgesBy.get(d.id) ?? [], cards);
 
-  /** Every deck's queue, most due deck first, each card once, with one budget for new cards. */
-  const allQueue = () => {
+  /** Every deck's queue, each card once, with one budget for new cards: how much there is to review today. */
+  const dueToday = () => {
     const seen = new Set<string>();
     let budget = newLeft;
-    const out: Drill[] = [];
-    const decks = [...lib.decks].sort((a, b) => deckCounts(drillsOf(b), now, newLeft, b.startMove).due - deckCounts(drillsOf(a), now, newLeft, a.startMove).due);
-    for (const d of decks) {
+    for (const d of lib.decks) {
       for (const x of drillQueue(drillsOf(d), now, budget, d.startMove)) {
         if (seen.has(x.card.id)) continue;
         seen.add(x.card.id);
         if (isNew(x.card)) budget--;
-        out.push(x);
       }
     }
-    return out;
+    return seen.size;
   };
+  const dueOf = (d: Deck) => deckCounts(drillsOf(d), now, newLeft, d.startMove).due;
+  const edgesRecord = () => Object.fromEntries(lib.decks.map((d) => [d.id, edgesBy.get(d.id) ?? []]));
 
-  const onGraded = (d: Drill, o: Outcome) => {
-    const at = new Date();
-    const { card, review } = gradeCard(d.card, ratingFor(o), { deckId: d.deckId, mode: 'positions', retention: lib.settings.retention }, at);
-    const wasNew = isNew(d.card);
-    const decks = lib.decks.map((x) => (x.id === d.deckId ? { ...x, lastTrainedAt: at.toISOString() } : x));
-    const newToday = lib.newToday + (wasNew ? 1 : 0);
-    save(
-      { ...lib, decks, newToday, cards: lib.cards.map((c) => (c.id === card.id ? card : c)) },
-      { cards: [card], reviews: [review], decks: decks.filter((x) => x.id === d.deckId), newToday: wasNew ? { day: today(), n: newToday } : undefined },
+  /** The training screen for one deck, in the mode last used. */
+  const trainDeck = (d0: Deck, after?: { label: string; next(): void }) => {
+    const d = { ...d0, startMove: startFor[d0.id] ?? d0.startMove };
+    const mode = lib.settings.mode;
+    const cardMap = Object.fromEntries(lib.cards.map((c) => [c.id, c]));
+    const items = mode === 'lines' ? linesFor(d, edgesBy.get(d.id) ?? [], cardMap, now) : positionsFor(drillQueue(drillsOf(d), now, newLeft, d.startMove), () => d.color, edgesRecord());
+    return (
+      <Train
+        key={`${d.id}|${mode}|${d.startMove}`}
+        mode={mode}
+        title={d.name}
+        items={items}
+        edges={edgesRecord()}
+        cards={lib.cards}
+        newLeft={newLeft}
+        settings={lib.settings}
+        decks={lib.decks}
+        allEdges={lib.edges}
+        deck={d}
+        dueBy={new Map(lib.decks.map((x) => [x.id, dueOf(x)]))}
+        onEffects={applyEffects}
+        onSettings={changeSettings}
+        onDeck={(id) => {
+          setAllOrder(null);
+          go({ page: 'train', id });
+        }}
+        onStartMove={(n, remember) => {
+          if (remember) {
+            updateDeck(lib, d0, { startMove: n });
+            setStartFor((all) => Object.fromEntries(Object.entries(all).filter(([id]) => id !== d0.id)));
+          } else setStartFor({ ...startFor, [d0.id]: n });
+        }}
+        onDone={after ? after.next : toShelf}
+        nextLabel={after?.label}
+      />
     );
   };
 
@@ -258,14 +318,44 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         }}
       />
     );
-  } else if (route.page === 'train' && (deck || route.id === ALL)) {
-    page = deck ? (
-      <Review key={deck.id} color={deck.color} title={deck.name} initial={drillQueue(drillsOf(deck), now, newLeft, deck.startMove)} onGraded={onGraded} onDone={toShelf} />
+  } else if (route.page === 'train' && deck) {
+    page = trainDeck(deck);
+  } else if (route.page === 'train' && route.id === ALL) {
+    // "Train all": the decks one after another, most due first.
+    const order = allOrder ?? { ids: [...lib.decks].filter((d) => dueOf(d) > 0).sort((a, b) => dueOf(b) - dueOf(a)).map((d) => d.id), at: 0 };
+    if (!allOrder) queueMicrotask(() => setAllOrder(order));
+    const current = lib.decks.find((d) => d.id === order.ids[order.at]);
+    const nextDeck = lib.decks.find((d) => d.id === order.ids[order.at + 1]);
+    page = current ? (
+      trainDeck(current, { label: nextDeck ? `Next: ${nextDeck.name}` : 'Back to Library', next: () => (nextDeck ? setAllOrder({ ...order, at: order.at + 1 }) : toShelf()) })
     ) : (
-      <Review key="all" title="All decks" initial={allQueue()} onGraded={onGraded} onDone={toShelf} />
+      <div className="card rep-done">
+        <h2>Nothing due right now</h2>
+        <button className="btn primary" onClick={toShelf}>
+          Back to Library
+        </button>
+      </div>
     );
   } else if (route.page === 'prep' && opponent) {
-    page = <Review key={'prep' + prepColor} color={prepColor} title={`Positions ${opponent.username} steers into`} initial={prepDrills} onGraded={onGraded} onDone={toShelf} />;
+    page = (
+      <Train
+        key={'prep' + prepColor}
+        mode="positions"
+        fixed
+        title={`Positions ${opponent.username} steers into`}
+        items={positionsFor(prepDrills, (id) => lib.decks.find((d) => d.id === id)?.color ?? prepColor, edgesRecord())}
+        edges={edgesRecord()}
+        cards={lib.cards}
+        newLeft={newLeft}
+        settings={lib.settings}
+        decks={lib.decks}
+        allEdges={lib.edges}
+        dueBy={new Map()}
+        onEffects={applyEffects}
+        onSettings={changeSettings}
+        onDone={toShelf}
+      />
+    );
   } else {
     const infos: DeckInfo[] = lib.decks.map((d) => ({ deck: d, ...deckCounts(drillsOf(d), now, newLeft, d.startMove), signature: signatureFen(edgesBy.get(d.id) ?? []) }));
     page = (
@@ -281,11 +371,14 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         <Shelf
           decks={infos}
           moves={lib.cards.length}
-          dueToday={allQueue().length}
+          dueToday={dueToday()}
           starters={STARTERS.map((s) => ({ ...s, signature: signatureFen(starterDeck(s).edges), moves: s.edges.filter((e) => e.from.split(' ')[1] === s.color).length, deckId: starterCopy(s.id)?.id }))}
           onOpen={(id) => go({ page: 'deck', id })}
           onTrain={(id) => go({ page: 'train', id })}
-          onTrainAll={() => go({ page: 'train', id: ALL })}
+          onTrainAll={() => {
+            setAllOrder(null);
+            go({ page: 'train', id: ALL });
+          }}
           onAdd={(p) => setAdding(p ?? 'menu')}
           onAddStarter={(id) => addStarter(lib, STARTERS.find((s) => s.id === id)!)}
           onPreviewStarter={(id) => go({ page: 'starter', id })}
@@ -339,111 +432,3 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
 
 /** The train page for all decks at once. */
 const ALL = 'all';
-
-/** Training as in Phase 1, until Phase 3 replaces it. Without `color`, each card is shown from its own side. */
-function Review({ color: side, title, initial, onGraded, onDone }: { color?: Color; title?: string; initial: Drill[]; onGraded(d: Drill, o: Outcome): void; onDone(): void }) {
-  const [drills, setDrills] = useState(initial);
-  const [i, setI] = useState(0);
-  const [hint, setHint] = useState(false);
-  const [wrong, setWrong] = useState<string | null>(null);
-  const [solved, setSolved] = useState<string | null>(null);
-  const [tally, setTally] = useState({ clean: 0, hint: 0, wrong: 0 });
-  /** Bumped after a move that is not accepted, so only that piece goes back. */
-  const [takeBack, setTakeBack] = useState(0);
-  const drill = drills[i];
-
-  if (!drill) {
-    return (
-      <div className="card rep-done">
-        <h2>Done for now</h2>
-        <p>
-          {tally.clean} right first time · {tally.hint} with a hint · {tally.wrong} missed
-        </p>
-        <p className="muted small">Missed positions come back soon; the ones you knew come back later, a little further apart each time.</p>
-        <button className="btn primary" onClick={onDone}>Back to Library</button>
-      </div>
-    );
-  }
-
-  const fen = drill.card.fen;
-  const color = side ?? drill.card.color;
-  const grade = (o: Outcome) => {
-    onGraded(drill, o);
-    setTally((t) => ({ ...t, [o]: t[o] + 1 }));
-    // A missed card is shown once more at the end of the session.
-    if (o === 'wrong') setDrills((d) => [...d, drill]);
-  };
-  const next = () => {
-    setI(i + 1);
-    setHint(false);
-    setWrong(null);
-    setSolved(null);
-  };
-
-  const onMove = (uci: string) => {
-    if (drill.moves.includes(uci)) {
-      setSolved(uci);
-      if (!wrong) grade(hint ? 'hint' : 'clean');
-      setTimeout(next, 650);
-    } else {
-      setTakeBack((n) => n + 1);
-      if (!wrong) {
-        setWrong(uci);
-        grade('wrong');
-      }
-    }
-  };
-
-  const main = drill.moves[0];
-  const shapes: DrawShape[] = [];
-  if (wrong) shapes.push(arrow(main, 'green'));
-  else if (hint) shapes.push({ orig: main.slice(0, 2) as Key, brush: 'green' });
-  const display = solved ? (() => { const c = new Chess(fen); playUci(c, solved); return c.fen(); })() : fen;
-
-  return (
-    <div className="rep-grid">
-      <div className="rep-board">
-        {/* One board for the whole session: a new one per card makes the board flash. */}
-        <Board
-          fen={display}
-          orientation={color}
-          movable={solved ? null : color}
-          lastMove={solved ?? drill.path[drill.path.length - 1]}
-          shapes={shapes}
-          onMove={onMove}
-          revision={takeBack}
-        />
-      </div>
-      <div className="card rep-side">
-        <p className="muted small">
-          {i + 1} / {drills.length} {isNew(drill.card) && <span className="pill">new</span>}
-        </p>
-        {title && <p className="eyebrow">{title}</p>}
-        <h2>Your move</h2>
-        <p className="rep-line">{drill.path.length ? ucisToSanLine(drill.path) : 'Start position'}</p>
-        {drill.moves.length > 1 && !wrong && <p className="muted small">You have {drill.moves.length} moves here; any of them counts.</p>}
-        {wrong && (
-          <p className="err">
-            Not {sanOf(fen, wrong)} — your move is <b>{sanOf(fen, main)}</b>
-            {drill.moves.length > 1 && <> (or {drill.moves.slice(1).map((m) => sanOf(fen, m)).join(', ')})</>}. Play it to continue.
-          </p>
-        )}
-        {solved && <p className="ok">{sanOf(fen, solved)} ✓</p>}
-        <div className="row">
-          <button className="btn small" disabled={hint || !!wrong || !!solved} onClick={() => setHint(true)}>Hint</button>
-          <button
-            className="btn small"
-            disabled={!!wrong || !!solved}
-            onClick={() => {
-              setWrong(main);
-              grade('wrong');
-            }}
-          >
-            Show move
-          </button>
-          <button className="btn small ghost" onClick={onDone}>Back to Library</button>
-        </div>
-      </div>
-    </div>
-  );
-}

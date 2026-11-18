@@ -4,7 +4,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { createEmptyCard, fsrs, Rating } from 'ts-fsrs';
 import { Chess } from 'chess.js';
 import { fenKey, playUci, sansToUcis, START_FEN } from '../lib/chess';
-import { apply, closeForTests, loadBackup, loadLibrary, restore } from './db';
+import { apply, cacheGet, cachePut, closeForTests, loadBackup, loadLibrary, restore } from './db';
 import { backupJson, parseBackup } from './model/backup';
 import { cardId } from './model/cards';
 import { START_KEY } from './model/deck';
@@ -106,6 +106,12 @@ describe('IndexedDB v2', () => {
     expect((await loadLibrary(day)).decks).toEqual([]);
     await restore(back);
     expect((await loadLibrary(day)).edges).toHaveLength(1);
+  });
+  it('keeps answers from public APIs in the cache store', async () => {
+    await loadLibrary('2026-11-20');
+    expect(await cacheGet('eval:x')).toBeUndefined();
+    await cachePut('eval:x', { at: 1, value: { best: 'e2e4', depth: 30 } });
+    expect(await cacheGet('eval:x')).toEqual({ at: 1, value: { best: 'e2e4', depth: 30 } });
   });
 });
 

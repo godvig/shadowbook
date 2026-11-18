@@ -91,9 +91,15 @@ export interface Settings {
   /** Last used training mode. */
   mode: 'lines' | 'positions';
   autoplayMs: number;
+  /** Training waits after each move of yours, so the panel can be read. */
+  pauseAfterMove: boolean;
+  /** The panel lists your other library moves in the position. */
+  showBookMoves: boolean;
+  /** The panel asks Lichess's cloud evaluation for Stockfish's best move (sends the position to Lichess). */
+  engine: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { newPerDay: 20, retention: 0.9, mode: 'lines', autoplayMs: 350 };
+export const DEFAULT_SETTINGS: Settings = { newPerDay: 20, retention: 0.9, mode: 'lines', autoplayMs: 350, pauseAfterMove: true, showBookMoves: true, engine: true };
 
 /** Everything the Library holds, as plain arrays. */
 export interface LibraryData {

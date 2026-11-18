@@ -18,7 +18,8 @@ export function Privacy({ onBack }: { onBack: () => void }) {
       </p>
       <p>
         The Library is stored only in this browser, and nothing from it is sent anywhere. A visit to it is counted as /library, never with a deck
-        name.
+        name. One exception you can switch off: while you train, Stockfish's recommendation is looked up in Lichess's cloud evaluation, which
+        sends Lichess the position on the board and nothing else. Turn it off under "Training settings" beside the board.
       </p>
 
       <h2>Who runs this</h2>

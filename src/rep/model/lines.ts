@@ -37,3 +37,25 @@ export function ownPositions(lines: Edge[][], color: Color): Map<string, { move:
   }
   return out;
 }
+
+/** The selected path, then the main moves after it until the line ends or comes back to a position. */
+export function lineThrough(edges: Iterable<Edge>, path: string[]): { moves: Edge[]; repeats: boolean } {
+  const kids = childrenOf(edges);
+  const moves: Edge[] = [];
+  const seen = new Set([START_KEY]);
+  let key = START_KEY;
+  for (const uci of path) {
+    const e = kids.get(key)?.find((x) => x.uci === uci);
+    if (!e) break;
+    moves.push(e);
+    seen.add(e.to);
+    key = e.to;
+  }
+  for (let e = kids.get(key)?.[0]; e; e = kids.get(key)?.[0]) {
+    moves.push(e);
+    if (seen.has(e.to)) return { moves, repeats: true };
+    seen.add(e.to);
+    key = e.to;
+  }
+  return { moves, repeats: false };
+}

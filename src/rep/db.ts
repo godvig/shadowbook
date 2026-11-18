@@ -63,7 +63,7 @@ function open(): Promise<IDBDatabase> {
   return opening;
 }
 
-const STORES = ['decks', 'edges', 'cards', 'reviews', 'meta'];
+const STORES = ['decks', 'edges', 'cards', 'reviews', 'meta', 'cache'];
 
 function run(mode: IDBTransactionMode, body: (t: IDBTransaction) => void): Promise<void> {
   return open().then(
@@ -163,6 +163,17 @@ export function restore(b: Backup): Promise<void> {
     }
     if (b.settings) t.objectStore('meta').put(b.settings, 'settings');
   });
+}
+
+/** The `cache` store: answers from public APIs, kept so the same question is not asked twice. */
+export async function cacheGet<T>(key: string): Promise<T | undefined> {
+  let out: T | undefined;
+  await run('readonly', (t) => get<T | undefined>(t.objectStore('cache').get(key), (v) => (out = v)));
+  return out;
+}
+
+export function cachePut(key: string, value: unknown): Promise<void> {
+  return run('readwrite', (t) => void t.objectStore('cache').put(value, key));
 }
 
 /** For tests: forget the open connection. */

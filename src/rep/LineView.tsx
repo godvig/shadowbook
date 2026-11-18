@@ -2,32 +2,11 @@
 // main move after it. Where the line could have gone another way, those moves sit right after the move as
 // "or …" buttons that switch to that line.
 import { cardId } from './model/cards';
-import { childrenOf, START_KEY } from './model/deck';
+import { childrenOf } from './model/deck';
+import { lineThrough } from './model/lines';
 import type { Card, Deck, Edge } from './model/types';
 import { CardDot, GlyphMark } from './marks';
 import { moveNumber } from './tree';
-
-/** The selected path, then the main moves after it until the line ends or comes back to a position. */
-export function lineThrough(edges: Iterable<Edge>, path: string[]): { moves: Edge[]; repeats: boolean } {
-  const kids = childrenOf(edges);
-  const moves: Edge[] = [];
-  const seen = new Set([START_KEY]);
-  let key = START_KEY;
-  for (const uci of path) {
-    const e = kids.get(key)?.find((x) => x.uci === uci);
-    if (!e) break;
-    moves.push(e);
-    seen.add(e.to);
-    key = e.to;
-  }
-  for (let e = kids.get(key)?.[0]; e; e = kids.get(key)?.[0]) {
-    moves.push(e);
-    if (seen.has(e.to)) return { moves, repeats: true };
-    seen.add(e.to);
-    key = e.to;
-  }
-  return { moves, repeats: false };
-}
 
 export function LineView({ deck, edges, cards, path, onOpen }: { deck: Pick<Deck, 'color'>; edges: Edge[]; cards: Map<string, Card>; path: string[]; onOpen(line: string[]): void }) {
   const kids = childrenOf(edges);

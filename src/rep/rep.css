@@ -189,3 +189,31 @@ body[data-view="library"] .footer { display: none; }
 .alt-move { background: transparent; border: 1px dashed var(--line-2); color: var(--text-2); border-radius: 99px; padding: 0 8px; font: inherit; font-size: 13px; cursor: pointer; line-height: 1.7; }
 .alt-move:hover { border-color: var(--gold); color: var(--text); }
 .alt-move.mine { font-weight: 600; }
+
+/* Training (Phase 3) */
+.train-side { display: flex; flex-direction: column; gap: 10px; }
+.train-side .eyebrow { margin: 0; }
+.train-controls { display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.train-deck { display: flex; flex-direction: column; gap: 4px; }
+.train-deck select { min-height: 44px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; padding: 0 12px; font: inherit; }
+.start-move { gap: 8px; }
+.start-move .btn { min-width: 44px; min-height: 44px; }
+.start-move b { min-width: 1.5em; text-align: center; }
+.train-progress { margin-top: 10px; gap: 10px; flex-wrap: nowrap; }
+.train-progress .bar { flex: 1; }
+.train-box { border-radius: 10px; padding: 12px 14px; background: var(--panel-2); border: 1px solid var(--line-2); min-height: 72px; }
+.train-box p { margin: 0 0 8px; }
+.train-box p:last-child { margin-bottom: 0; }
+.train-box.teach { border-color: var(--gold); }
+.train-box.offbook { border-color: #6b3a35; }
+.train-box.feedback, .train-box.end { border-color: #2f5a3a; }
+.new-pill { color: var(--gold-ink); background: var(--gold); border-color: var(--gold); font-weight: 600; }
+.after-move .book-moves ul { margin: 4px 0 0; padding-left: 18px; }
+.after-move .engine .btn, .train-box .engine .btn { min-height: 32px; padding: 2px 10px; }
+.train-actions { gap: 8px; }
+/* Continue stays reachable on a phone: the actions stick to the bottom of the screen while training. */
+@media (max-width: 760px) {
+  .train-actions { position: sticky; bottom: 0; background: var(--panel); padding: 8px 0; z-index: 3; }
+}
+.train-switches summary { cursor: pointer; color: var(--muted); min-height: 32px; display: flex; align-items: center; }
+.train-switches label { display: flex; }
