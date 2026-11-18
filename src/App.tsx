@@ -179,7 +179,8 @@ export default function App() {
           Openings come from the player’s public games. After that the bot is{' '}
           <a href="https://github.com/CSSLab/maia3">Maia3</a>, a neural network trained to play like humans of a given rating. Everything runs in your
           browser. Free and open source (AGPL-3.0). Built by{' '}
-          <a href="https://adamenglund.eu/">Adam Englund</a>.
+          <a href="https://adamenglund.eu/">Adam Englund</a>. If it helps your chess, you can{' '}
+          <a href="https://ko-fi.com/godvig">buy me a coffee</a>.
         </footer>
       </main>
     </>

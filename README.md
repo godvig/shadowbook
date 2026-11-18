@@ -149,6 +149,10 @@ CI runs all three on every push.
 - [x] Installable app (PWA) with shortcuts to Match and Spar
 - [ ] Offline sparring with the cached Maia model
 
+## Support
+
+Shadowbook is free, with no ads. If it helps your chess, you can [buy me a coffee](https://ko-fi.com/godvig).
+
 ## How it is built
 
 Shadowbook is built with AI assistance (Claude Code). The architecture and the decisions are Adam Englund's.
