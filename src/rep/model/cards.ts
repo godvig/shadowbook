@@ -94,6 +94,20 @@ export function drillQueue(drills: Drill[], now: Date, newLeft: number, startMov
   return [...due, ...fresh];
 }
 
+/**
+ * "Reset progress" for one deck: its cards start over as new. A card is shared by every deck with the same position
+ * and main move, so it starts over there too; those decks are returned so the confirm can name them. The review
+ * log is left alone.
+ */
+export function resetDeck(deck: Deck, decks: Deck[], edges: Edge[], cards: Card[], now = new Date()): { cards: Card[]; reset: Card[]; shared: Deck[] } {
+  const of = (d: Deck) => new Set(deckCardIds(d, edges.filter((e) => e.deckId === d.id)).values());
+  const ids = of(deck);
+  const reset = cards.filter((c) => ids.has(c.id)).map((c) => ({ ...c, fsrs: createEmptyCard(now) }));
+  const byId = new Map(reset.map((c) => [c.id, c]));
+  const shared = decks.filter((d) => d.id !== deck.id && [...of(d)].some((id) => ids.has(id)));
+  return { cards: cards.map((c) => byId.get(c.id) ?? c), reset, shared };
+}
+
 const schedulers = new Map<number, ReturnType<typeof fsrs>>();
 const schedulerFor = (retention: number) => {
   let s = schedulers.get(retention);

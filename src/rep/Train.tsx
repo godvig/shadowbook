@@ -51,11 +51,15 @@ export interface TrainProps {
   dueBy: Map<string, number>;
   onEffects(effects: Effect[]): void;
   onSettings(patch: Partial<Settings>): void;
+  /** Opens the Settings page, for the settings that are not beside the board. */
+  onOpenSettings?(): void;
   onDeck?(id: string): void;
   onStartMove?(n: number, remember: boolean): void;
   onDone(): void;
   /** "Train all": what comes after this deck. */
   nextLabel?: string;
+  /** The button that stops training, when it goes somewhere other than the Library. */
+  stopLabel?: string;
   /** Train the items even when nothing is due (one position from Insights). */
   practice?: boolean;
 }
@@ -309,7 +313,7 @@ export function Train(p: TrainProps) {
             )
           )}
           <button className="btn small ghost" onClick={p.onDone}>
-            Back to Library
+            {p.stopLabel ?? 'Back to Library'}
           </button>
         </div>
 
@@ -324,6 +328,11 @@ export function Train(p: TrainProps) {
           <label className="rep-check small">
             <input type="checkbox" checked={p.settings.engine} onChange={(e) => p.onSettings({ engine: e.target.checked })} /> Stockfish's recommendation (asks Lichess, sends only the position)
           </label>
+          {p.onOpenSettings && (
+            <button className="link small" onClick={p.onOpenSettings}>
+              All settings
+            </button>
+          )}
         </details>
       </div>
     </div>

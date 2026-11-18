@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { State } from 'ts-fsrs';
 import { fenKey, sansToUcis } from '../../lib/chess';
-import { cardId, deckCounts, deckDrills, drillQueue, gradeCard, Rating, syncCards } from './cards';
+import { cardId, deckCounts, deckDrills, drillQueue, gradeCard, Rating, resetDeck, syncCards } from './cards';
 import { addPath, makeMain, newDeck, ownMoveIndex, removeEdge, START_KEY } from './deck';
 import { enumerateLines, ownPositions } from './lines';
 import type { Card, Edge } from './types';
@@ -67,6 +67,24 @@ describe('card identity', () => {
     expect(ids(cards)).toEqual(
       [cardId('w', START_KEY, 'e2e4'), cardId('w', keyAfter(edges, 'e5'), 'g1f3'), cardId('w', nc6, 'f1c4'), cardId('w', nc6, 'f1b5')].sort(),
     );
+  });
+
+  it('resets a deck’s cards, shared ones included, and names the decks that share them', () => {
+    const italian = white('Italian');
+    const ruy = white('Ruy Lopez');
+    const london = white('London');
+    const edges = [...path([], italian, ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4']), ...path([], ruy, ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5']), ...path([], london, ['d4', 'd5', 'Bf4'])];
+    const synced = syncCards([italian, ruy, london], edges, [], now).cards;
+    const later = new Date('2026-11-20T12:00:00Z');
+    const trained = synced.map((c) => gradeCard(c, Rating.Good, { deckId: 'x', mode: 'lines', retention: 0.9 }, now).card);
+    const r = resetDeck(italian, [italian, ruy, london], edges, trained, later);
+    expect(r.shared.map((d) => d.name)).toEqual(['Ruy Lopez']);
+    expect(ids(r.reset)).toEqual([cardId('w', START_KEY, 'e2e4'), cardId('w', keyAfter(edges, 'e5'), 'g1f3'), cardId('w', keyAfter(edges, 'Nc6'), 'f1c4')].sort());
+    const state = new Map(r.cards.map((c) => [c.id, c.fsrs.state]));
+    expect(r.reset.every((c) => state.get(c.id) === State.New)).toBe(true);
+    expect(state.get(cardId('w', keyAfter(edges, 'Nc6'), 'f1b5'))).not.toBe(State.New);
+    expect(state.get(cardId('w', START_KEY, 'd2d4'))).not.toBe(State.New);
+    expect(r.cards).toHaveLength(trained.length);
   });
 
   it('gives a new card when the main move changes, keeps the schedule of shared cards, and removes orphans', () => {

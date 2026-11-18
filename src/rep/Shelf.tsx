@@ -32,6 +32,8 @@ export function Shelf(props: {
   onBackup(): void;
   onInsights(): void;
   onShare(): void;
+  onProgress(): void;
+  onSettings(): void;
 }) {
   const [filter, setFilter] = useState<'all' | 'w' | 'b'>('all');
   const [shown, setShown] = useState(STEP * 2);
@@ -66,6 +68,11 @@ export function Shelf(props: {
           <button className="btn ghost" onClick={props.onInsights}>
             Insights
           </button>
+          {!empty && (
+            <button className="btn ghost" onClick={props.onProgress}>
+              Progress
+            </button>
+          )}
         </div>
       </div>
 
@@ -142,6 +149,10 @@ export function Shelf(props: {
           ·{' '}
           <button className="link" onClick={props.onShare}>
             Send to Lichess
+          </button>{' '}
+          ·{' '}
+          <button className="link" onClick={props.onSettings}>
+            Settings
           </button>
         </p>
       )}

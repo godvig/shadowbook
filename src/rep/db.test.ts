@@ -4,7 +4,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { createEmptyCard, fsrs, Rating } from 'ts-fsrs';
 import { Chess } from 'chess.js';
 import { fenKey, playUci, sansToUcis, START_FEN } from '../lib/chess';
-import { apply, cacheGet, cachePut, closeForTests, loadBackup, loadLibrary, restore } from './db';
+import { apply, cacheGet, cachePut, closeForTests, loadBackup, loadLibrary, loadReviews, restore } from './db';
 import { backupJson, parseBackup } from './model/backup';
 import { cardId } from './model/cards';
 import { START_KEY } from './model/deck';
@@ -100,6 +100,7 @@ describe('IndexedDB v2', () => {
 
     const b = await loadBackup();
     expect(b.reviews).toHaveLength(1);
+    expect((await loadReviews()).map((r) => r.rating)).toEqual([3]);
     const back = parseBackup(backupJson(b), now);
     expect(back.cards[0].fsrs.due instanceof Date).toBe(true);
     await apply({ deleteDecks: [loaded.decks[0].id] });

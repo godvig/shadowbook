@@ -225,7 +225,7 @@ Done when: an existing v1 library opens with the same cards and due dates; a stu
 
 ### Phase 2 — Build from games, shelf, deck view, starter openings
 
-Status 2026-11-18: Phases 0 to 3 are merged (`4ae5696`). Phases 6 (`dc988d9`) and 4 are committed on `feat/library-phase-4`, not pushed. Phase 5 is next.
+Status 2026-11-18: Phases 0 to 6 are merged. Phases 0 to 3 are `4ae5696`; then 6 (`dc988d9`), 4 (`2aad49f`) and 5, Settings and Progress. The statistics page is called Progress, since Insights is the games page.
 
 Order inside this phase: **build a deck from my games first**, so Adam can load his own repertoire (he plays blitz on chess.com). Then the shelf, the deck view and the starter openings.
 

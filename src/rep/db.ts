@@ -136,6 +136,13 @@ export function saveSettings(s: Settings): Promise<void> {
   return run('readwrite', (t) => void t.objectStore('meta').put(s, 'settings'));
 }
 
+/** The whole review log, oldest first, for the Progress page. */
+export async function loadReviews(): Promise<Review[]> {
+  let out: Review[] = [];
+  await run('readonly', (t) => get<Review[]>(t.objectStore('reviews').getAll(), (v) => (out = v)));
+  return out;
+}
+
 export async function loadBackup(): Promise<Backup> {
   const out: Backup = { decks: [], edges: [], cards: [], reviews: [] };
   await run('readonly', (t) => {

@@ -245,3 +245,42 @@ body[data-view="library"] .footer { display: none; }
 .send-new p { margin: 0; }
 .send-result { margin-top: 12px; }
 .send-result p { margin: 0 0 6px; }
+
+/* Settings and Progress (Phase 5) */
+.settings-page, .progress-page { max-width: 860px; }
+.settings-page h1, .progress-page h1 { margin: 0 0 4px; }
+.settings-page > .muted { margin: 0 0 16px; }
+.settings-card h2, .progress-card h2 { margin: 0 0 10px; }
+.settings-card + .settings-card, .progress-card + .progress-card { margin-top: 16px; }
+.setting { display: grid; gap: 6px; margin: 0 0 18px; padding: 0; border: 0; max-width: 560px; }
+.setting legend { padding: 0; margin-bottom: 4px; }
+.setting input[type='range'] { width: 100%; accent-color: var(--gold); }
+.setting select { max-width: 320px; }
+.settings-card > .rep-check { display: flex; }
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-btn:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.progress-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 12px 0 16px; }
+.progress-tiles > .card.tile { margin: 0; }
+.tile { display: grid; gap: 2px; padding: 14px 16px; }
+.tile-n { font-size: 28px; font-weight: 700; line-height: 1.1; }
+@media (max-width: 560px) { .progress-tiles { grid-template-columns: 1fr; } .tile { grid-template-columns: auto 1fr; align-items: baseline; gap: 10px; } }
+.progress-card > p { margin: 0 0 10px; }
+.chart { display: block; width: 100%; height: auto; max-height: 200px; overflow: visible; }
+.bar-due { fill: var(--blue); }
+.bar-today { fill: var(--gold); }
+.bar-kept { fill: #7bd88f; }
+.bar-missed { fill: var(--coral); }
+.chart-n { fill: var(--text-2); font-size: 12px; text-anchor: middle; }
+.chart-label { fill: var(--muted); font-size: 11px; text-anchor: middle; }
+.chart-axis { stroke: var(--line-2); }
+.progress-page .insight-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.progress-page .insight-row:first-child { border-top: 0; }
+.progress-table-wrap { overflow-x: auto; }
+.progress-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.progress-table th, .progress-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.progress-table th:first-child { text-align: left; white-space: normal; min-width: 140px; }
+.progress-table thead th { color: var(--muted); font-weight: 500; font-size: 13px; }
+/* The charts scale down with the screen, so their text is set larger on a phone to stay readable. */
+@media (max-width: 560px) { .chart-n { font-size: 19px; } .chart-label { font-size: 17px; } }

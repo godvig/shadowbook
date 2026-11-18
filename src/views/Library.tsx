@@ -5,8 +5,8 @@ import type { Color } from '../lib/types';
 import { AddDialog, type AddPanel } from '../rep/AddDialog';
 import * as db from '../rep/db';
 import { DeckView } from '../rep/DeckView';
-import { backupJson } from '../rep/model/backup';
-import { cardId, deckCounts, deckDrills, drillQueue, gradeCard, isNew, syncCards, type Drill } from '../rep/model/cards';
+import { backupJson, parseBackup } from '../rep/model/backup';
+import { cardId, deckCounts, deckDrills, drillQueue, gradeCard, isNew, resetDeck, syncCards, type Drill } from '../rep/model/cards';
 import { addPath, makeMain, newDeck, ownMoveIndex, removeEdge, signatureFen } from '../rep/model/deck';
 import { commitBuild, type GamesSite } from '../rep/model/fromGames';
 import type { Habit } from '../rep/model/insights';
@@ -18,6 +18,8 @@ import type { Deck, Edge, LibraryData, Settings } from '../rep/model/types';
 import { meet, prepQueue } from '../rep/meet';
 import { MeetPanel } from '../rep/MeetPanel';
 import { isLibraryHash, parseRoute, routeHash, type LibraryRoute } from '../rep/route';
+import { Progress } from '../rep/Progress';
+import { SettingsPage } from '../rep/SettingsPage';
 import { Share } from '../rep/Share';
 import { Shelf, type DeckInfo } from '../rep/Shelf';
 import { STARTERS, starterDeck, type Starter } from '../rep/starters';
@@ -60,8 +62,8 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
   const [notice, setNotice] = useState('');
   /** "Start at move" changed in training without "Remember": for this visit only. */
   const [startFor, setStartFor] = useState<Record<string, number>>({});
-  /** "Train this position" from Insights: one card, trained on its own. */
-  const [single, setSingle] = useState<{ title: string; drills: Drill[] } | null>(null);
+  /** "Train this position" from Insights or Progress: one card, trained on its own, then back there. */
+  const [single, setSingle] = useState<{ title: string; drills: Drill[]; back: 'insights' | 'progress' } | null>(null);
   /** "Train all": the decks in order, and how far along. */
   const [allOrder, setAllOrder] = useState<{ ids: string[]; at: number } | null>(null);
   const [error, setError] = useState('');
@@ -260,6 +262,7 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         dueBy={new Map(lib.decks.map((x) => [x.id, dueOf(x)]))}
         onEffects={applyEffects}
         onSettings={changeSettings}
+        onOpenSettings={() => go({ page: 'settings' })}
         onDeck={(id) => {
           setAllOrder(null);
           go({ page: 'train', id });
@@ -285,6 +288,26 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
       () => setNotice('This browser did not allow copying. Use Export PGN instead.'),
     );
   const toShelf = () => go({ page: 'shelf' });
+  const backup = async () => download(`shadowbook-library-${today()}.json`, backupJson(await db.loadBackup()), 'application/json');
+  const restoreBackup = async (b: ReturnType<typeof parseBackup>) => {
+    await db.restore(b);
+    setLib(await db.loadLibrary(today()));
+  };
+  /** The drill for a card in the first deck that has it, for "Train this position". */
+  const drillFor = (id: string): Drill | undefined => {
+    for (const d of lib.decks) {
+      const found = drillsOf(d).find((x) => x.card.id === id);
+      if (found) return found;
+    }
+  };
+  /** "Reset progress" from Settings, after a confirm that names the decks sharing those cards. */
+  const resetProgress = (deck: Deck): string | undefined => {
+    const r = resetDeck(deck, lib.decks, lib.edges, lib.cards);
+    const also = r.shared.length ? ` Moves it shares with ${r.shared.map((d) => d.name).join(', ')} start over there too.` : '';
+    if (!window.confirm(`Reset progress for ${deck.name}? Its ${r.reset.length} move${r.reset.length === 1 ? '' : 's'} become new again.${also} This cannot be undone; download a backup first if you might want it back.`)) return;
+    save({ ...lib, cards: r.cards }, { cards: r.reset });
+    return `${deck.name} starts over: ${r.reset.length} move${r.reset.length === 1 ? ' is' : 's are'} new again.`;
+  };
 
   /** The player of the decks built from games most recently, to prefill the games forms. */
   const lastPlayer = (): { site: GamesSite; username: string } | undefined => {
@@ -407,13 +430,32 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         onTrain={(color, key) => {
           const d = drillAt(color, key);
           if (!d) return;
-          setSingle({ title: 'A position from your games', drills: [d] });
+          setSingle({ title: 'A position from your games', drills: [d], back: 'insights' });
           go({ page: 'prep' });
         }}
         onAddMove={(color, path) => {
           const d = deckFor(lib.decks, lib.edges, color, path) ?? createDeck(lib, color);
           go({ page: 'deck', id: d.id }, path);
         }}
+      />
+    );
+  } else if (route.page === 'settings') {
+    page = <SettingsPage settings={lib.settings} decks={lib.decks} onSettings={changeSettings} onReset={resetProgress} onBackup={backup} onRestore={restoreBackup} onBack={toShelf} />;
+  } else if (route.page === 'progress') {
+    page = (
+      <Progress
+        decks={lib.decks}
+        cards={lib.cards}
+        target={lib.settings.retention}
+        drillsOf={drillsOf}
+        dueOf={dueOf}
+        drillFor={drillFor}
+        onTrain={(d) => {
+          setSingle({ title: 'A move you often miss', drills: [d], back: 'progress' });
+          go({ page: 'prep' });
+        }}
+        onOpenDeck={(id) => go({ page: 'deck', id })}
+        onBack={toShelf}
       />
     );
   } else if (route.page === 'share') {
@@ -438,7 +480,8 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         cards={lib.cards}
         newLeft={newLeft}
         practice
-        nextLabel="Back to Insights"
+        nextLabel={single.back === 'insights' ? 'Back to Insights' : 'Back to Progress'}
+        stopLabel={single.back === 'insights' ? 'Back to Insights' : 'Back to Progress'}
         settings={lib.settings}
         decks={lib.decks}
         allEdges={lib.edges}
@@ -447,7 +490,7 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         onSettings={changeSettings}
         onDone={() => {
           setSingle(null);
-          go({ page: 'insights' });
+          go({ page: single.back });
         }}
       />
     );
@@ -484,6 +527,8 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
           onTrain={(id) => go({ page: 'train', id })}
           onInsights={() => go({ page: 'insights' })}
           onShare={() => go({ page: 'share' })}
+          onProgress={() => go({ page: 'progress' })}
+          onSettings={() => go({ page: 'settings' })}
           onTrainAll={() => {
             setAllOrder(null);
             go({ page: 'train', id: ALL });
@@ -491,7 +536,7 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
           onAdd={(p) => setAdding(p ?? 'menu')}
           onAddStarter={(id) => addStarter(lib, STARTERS.find((s) => s.id === id)!)}
           onPreviewStarter={(id) => go({ page: 'starter', id })}
-          onBackup={async () => download(`shadowbook-library-${today()}.json`, backupJson(await db.loadBackup()), 'application/json')}
+          onBackup={backup}
         />
         {opponent && (
           <MeetPanel
@@ -539,10 +584,7 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
           setAdding(null);
           go({ page: 'deck', id: createDeck(lib, c).id });
         }}
-        onRestore={async (b) => {
-          await db.restore(b);
-          setLib(await db.loadLibrary(today()));
-        }}
+        onRestore={restoreBackup}
       />
     </div>
   );
