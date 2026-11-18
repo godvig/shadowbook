@@ -47,8 +47,14 @@ export async function login(): Promise<void> {
   location.assign(`${LICHESS}/oauth?${q}`);
 }
 
-/** True when this page load is the return from Lichess. */
-export const isOAuthReturn = () => new URLSearchParams(location.search).has('state');
+/** The Library's "Send to Lichess" asks for its own login; its state starts with this, which a match login never does. */
+export const LIBRARY_STATE = 'library.';
+const returnState = () => new URLSearchParams(location.search).get('state');
+
+/** True when this page load is the return from a match hub login. */
+export const isOAuthReturn = () => !!returnState() && !returnState()!.startsWith(LIBRARY_STATE);
+/** True when this page load is the return from the Library's login for sending decks to Lichess. */
+export const isLibraryOAuthReturn = () => !!returnState()?.startsWith(LIBRARY_STATE);
 
 /** Finishes a login after Lichess redirects back. Returns the token, or null if this was not a login return. */
 export async function completeLogin(): Promise<string | null> {

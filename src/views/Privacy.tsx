@@ -9,7 +9,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
         ← Back
       </button>
       <h1>Privacy</h1>
-      <p className="muted">Last updated 15 November 2026</p>
+      <p className="muted">Last updated 18 November 2026</p>
 
       <h2>The short version</h2>
       <p>
@@ -21,7 +21,9 @@ export function Privacy({ onBack }: { onBack: () => void }) {
         name. One exception you can switch off: while you train, and for your most repeated moves in Insights, Stockfish's view is looked up in
         Lichess's cloud evaluation, which sends Lichess the position and nothing else. Turn it off under "Training settings" beside the board.
         Insights and "Build decks from your games" fetch your public games straight from chess.com or Lichess into this browser and keep only
-        their opening moves here.
+        their opening moves here. "Send to Lichess" sends the decks you tick to Lichess, as chapters in a study of yours, only when you press Send. It
+        uses its own Lichess login, asked for at that moment, which may read and write your studies; its token stays in this browser until you
+        disconnect.
       </p>
 
       <h2>Who runs this</h2>

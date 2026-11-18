@@ -230,3 +230,18 @@ body[data-view="library"] .footer { display: none; }
 .insight-row p { margin: 0 0 6px; }
 .insight-title { font-weight: 600; }
 @media (max-width: 520px) { .insight-row { grid-template-columns: 96px minmax(0, 1fr); gap: 12px; } }
+
+/* Send to Lichess (Phase 4) */
+.send-lichess { max-width: 720px; }
+.send-lichess h1 { margin: 0 0 4px; }
+.send-lichess > .muted { margin: 0 0 16px; }
+.send-card h2 { margin: 0 0 8px; }
+.send-decks-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.send-decks { list-style: none; margin: 0; padding: 0; columns: 2 260px; column-gap: 24px; }
+.send-decks li { break-inside: avoid; }
+.send-decks .rep-check { min-height: 36px; }
+.send-new { display: grid; gap: 8px; margin: 0 0 12px 26px; }
+.send-new label { display: grid; gap: 4px; max-width: 420px; }
+.send-new p { margin: 0; }
+.send-result { margin-top: 12px; }
+.send-result p { margin: 0 0 6px; }

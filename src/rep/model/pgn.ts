@@ -230,7 +230,7 @@ function commentOf(e: Pick<Edge, 'comment' | 'shapes'>): string {
  * Writes a deck as one PGN game: main move first, alternatives and other replies as variations. Each position is
  * written out once; a line that transposes into a position already written ends there.
  */
-export function serializeDeck(deck: Pick<Deck, 'name' | 'color' | 'intro' | 'source'>, edges: Iterable<Edge>): string {
+export function serializeDeck(deck: Pick<Deck, 'name' | 'color' | 'intro' | 'source'>, edges: Iterable<Edge>, opts: { studyTags?: boolean } = {}): string {
   const kids = childrenOf(edges);
   const expanded = new Set<string>();
   const out: string[] = [];
@@ -256,8 +256,9 @@ export function serializeDeck(deck: Pick<Deck, 'name' | 'color' | 'intro' | 'sou
     line(main.to, ply + 1, alts.length > 0 || !!commentOf(main), into);
   };
   line(START_KEY, 0, true, out);
-  // A deck from a Lichess chapter keeps its study tags, so importing the file again updates the same deck.
-  const study = deck.source.kind === 'lichess' && deck.source.chapterId ? deck.source : null;
+  // A deck from a Lichess chapter keeps its study tags, so importing the file again updates the same deck. A copy
+  // sent to a new study leaves them out (studyTags: false), so it is not tied to the study it came from.
+  const study = deck.source.kind === 'lichess' && deck.source.chapterId && opts.studyTags !== false ? deck.source : null;
   const tags = [
     ['Event', deck.name],
     ['Site', 'https://shadowbook.godvig.com'],

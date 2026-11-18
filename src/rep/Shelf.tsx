@@ -31,6 +31,7 @@ export function Shelf(props: {
   onPreviewStarter(id: string): void;
   onBackup(): void;
   onInsights(): void;
+  onShare(): void;
 }) {
   const [filter, setFilter] = useState<'all' | 'w' | 'b'>('all');
   const [shown, setShown] = useState(STEP * 2);
@@ -137,6 +138,10 @@ export function Shelf(props: {
           The library lives in this browser only.{' '}
           <button className="link" onClick={props.onBackup}>
             Download backup
+          </button>{' '}
+          ·{' '}
+          <button className="link" onClick={props.onShare}>
+            Send to Lichess
           </button>
         </p>
       )}

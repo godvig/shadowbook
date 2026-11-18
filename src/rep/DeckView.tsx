@@ -51,6 +51,9 @@ export function DeckView(props: {
   onUpdate?(patch: Partial<Pick<Deck, 'name' | 'startMove'>>): void;
   onTrain?(): void;
   onExport(): void;
+  onCopy(): void;
+  /** Send to Lichess, with this deck ticked. */
+  onShare?(): void;
   onDelete?(): void;
   /** Starter preview: add it, or open the copy already in the library. */
   starter?: { inLibrary: boolean; onAdd(): void; onOpen(): void };
@@ -163,6 +166,14 @@ export function DeckView(props: {
             <button className="btn small" disabled={!edges.length} onClick={props.onExport}>
               Export PGN
             </button>
+            <button className="btn small" disabled={!edges.length} onClick={props.onCopy}>
+              Copy PGN
+            </button>
+            {props.onShare && (
+              <button className="btn small" disabled={!edges.length} onClick={props.onShare}>
+                Send to Lichess
+              </button>
+            )}
           </div>
           <p className="muted small rep-arrows">
             Arrows on the board are the book moves from this position: <span className="sw green" /> your main move, <span className="sw pale-green" /> your other moves,{' '}

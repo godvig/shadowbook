@@ -8,7 +8,7 @@ import { Logo } from './components/Logo';
 import { Match } from './views/Match';
 import { Privacy } from './views/Privacy';
 import type { LibraryStart } from './views/Library';
-import { isOAuthReturn } from './live/lichessAuth';
+import { isLibraryOAuthReturn, isOAuthReturn } from './live/lichessAuth';
 import { MATCH_PAGES, MATCH_PATH, isMatchPath, matchLang } from './live/routes';
 import { countView } from './lib/counter';
 import { isLibraryHash } from './rep/route';
@@ -27,7 +27,7 @@ type View =
 
 function viewFromLocation(): View {
   if (location.hash === '#privacy') return { name: 'privacy' };
-  if (isLibraryHash(location.hash)) return { name: 'library' };
+  if (isLibraryHash(location.hash) || isLibraryOAuthReturn()) return { name: 'library' };
   if (isMatchPath(location.pathname) || location.hash === '#match' || isOAuthReturn()) return { name: 'match' };
   return { name: 'home' };
 }
@@ -35,7 +35,7 @@ function viewFromLocation(): View {
 export default function App() {
   const [view, setViewRaw] = useState<View>(() => viewFromLocation());
   // Read on the first render: the match view clears the login parameters from the address before the effects below run.
-  const [backFromLogin] = useState(isOAuthReturn);
+  const [backFromLogin] = useState(() => isOAuthReturn() || isLibraryOAuthReturn());
   const setView = (v: View) => {
     setViewRaw(v);
     // The match hub has its own address; everything else lives on the root, privacy as #privacy.

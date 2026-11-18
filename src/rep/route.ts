@@ -6,6 +6,8 @@ export type LibraryRoute =
   | { page: 'train'; id: string }
   | { page: 'starter'; id: string }
   | { page: 'insights' }
+  /** Send to Lichess, with one deck ticked when it comes from that deck. */
+  | { page: 'share'; id?: string }
   /** Drilling what a scouted opponent steers into. Needs the opponent in memory, so a reload goes to the shelf. */
   | { page: 'prep' };
 
@@ -16,9 +18,12 @@ export function parseRoute(hash: string): LibraryRoute {
   const safe = id ? decodeURIComponent(id) : '';
   if ((page === 'deck' || page === 'train' || page === 'starter') && safe) return { page, id: safe };
   if (page === 'prep' || page === 'insights') return { page };
+  if (page === 'share') return safe ? { page, id: safe } : { page };
   return { page: 'shelf' };
 }
 
 export function routeHash(r: LibraryRoute): string {
-  return r.page === 'shelf' ? '#library' : r.page === 'prep' || r.page === 'insights' ? `#library/${r.page}` : `#library/${r.page}/${encodeURIComponent(r.id)}`;
+  if (r.page === 'shelf') return '#library';
+  if (r.page === 'prep' || r.page === 'insights' || (r.page === 'share' && !r.id)) return `#library/${r.page}`;
+  return `#library/${r.page}/${encodeURIComponent(r.id!)}`;
 }

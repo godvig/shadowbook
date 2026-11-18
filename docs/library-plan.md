@@ -225,7 +225,7 @@ Done when: an existing v1 library opens with the same cards and due dates; a stu
 
 ### Phase 2 — Build from games, shelf, deck view, starter openings
 
-Status 2026-11-18: Phases 0 to 3 are merged (`4ae5696`). Phase 6 is built on `feat/library-phase-6`; then 4 and 5.
+Status 2026-11-18: Phases 0 to 3 are merged (`4ae5696`). Phases 6 (`dc988d9`) and 4 are committed on `feat/library-phase-4`, not pushed. Phase 5 is next.
 
 Order inside this phase: **build a deck from my games first**, so Adam can load his own repertoire (he plays blitz on chess.com). Then the shelf, the deck view and the starter openings.
 
@@ -379,6 +379,7 @@ Tests (reducer): each grading rule above, once-per-session, off-book choices, al
 - A study holds at most 64 chapters: check before sending and say so.
 - Sending again creates new chapters. Say that in the dialog. No sync.
 - Check the exact request fields and CORS behaviour against https://lichess.org/api#tag/Studies before building. If creating a study from the browser is not possible, stop and ask.
+- Checked 2026-11-18: `POST /api/study` creates a study (30 a day) with one empty chapter, and CORS allows all of these calls from the browser. Approved changes: the login asks for `study:read study:write` (listing unlisted and private studies and counting chapters need read); the empty first chapter is deleted once the first deck is in; a new study defaults to private; sent decks leave out their old study's `ChapterURL` and `StudyName`; the Library's login uses a `state` starting with `library.`, so `live/lichessAuth.ts` and `App.tsx` send that return to the Library instead of the match hub (one line each); a deck also gets Copy PGN.
 
 ### Phase 5 — Settings and statistics
 

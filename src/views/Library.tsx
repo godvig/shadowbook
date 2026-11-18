@@ -18,10 +18,12 @@ import type { Deck, Edge, LibraryData, Settings } from '../rep/model/types';
 import { meet, prepQueue } from '../rep/meet';
 import { MeetPanel } from '../rep/MeetPanel';
 import { isLibraryHash, parseRoute, routeHash, type LibraryRoute } from '../rep/route';
+import { Share } from '../rep/Share';
 import { Shelf, type DeckInfo } from '../rep/Shelf';
 import { STARTERS, starterDeck, type Starter } from '../rep/starters';
 import { Train } from '../rep/Train';
 import type { Opponent } from '../lib/opponent';
+import { isLibraryOAuthReturn } from '../live/lichessAuth';
 import '../rep/rep.css';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -48,7 +50,8 @@ function deckFor(decks: Deck[], edges: Edge[], color: Color, line: string[]): De
 
 export function Library({ opponent, start }: { opponent?: Opponent | null; start?: LibraryStart }) {
   const [lib, setLib] = useState<db.Stored | null>(null);
-  const [route, setRoute] = useState<LibraryRoute>(() => parseRoute(location.hash));
+  // Back from the Lichess login for Send to Lichess, the address has no #library yet.
+  const [route, setRoute] = useState<LibraryRoute>(() => (isLibraryOAuthReturn() ? { page: 'share' } : parseRoute(location.hash)));
   /** Where the deck view opens, e.g. the position from "add a move" in the Report. */
   const [deckLine, setDeckLine] = useState<string[]>([]);
   const [prepColor, setPrepColor] = useState<Color>(start?.prep ?? 'w');
@@ -276,6 +279,11 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
   const onImported = (next: LibraryData, change: db.Change) => save({ ...lib, ...next }, change);
   const exportDeck = (d: Deck, edges: Edge[]) =>
     download(`${d.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'deck'}.pgn`, serializeDeck(d, edges), 'application/x-chess-pgn');
+  const copyDeck = (d: Deck, edges: Edge[]) =>
+    navigator.clipboard.writeText(serializeDeck(d, edges)).then(
+      () => setNotice(`Copied ${d.name} as PGN.`),
+      () => setNotice('This browser did not allow copying. Use Export PGN instead.'),
+    );
   const toShelf = () => go({ page: 'shelf' });
 
   /** The player of the decks built from games most recently, to prefill the games forms. */
@@ -339,6 +347,8 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         onUpdate={(patch) => updateDeck(lib, deck, patch)}
         onTrain={() => go({ page: 'train', id: deck.id })}
         onExport={() => exportDeck(deck, edges)}
+        onCopy={() => copyDeck(deck, edges)}
+        onShare={() => go({ page: 'share', id: deck.id })}
         onDelete={() => {
           const n = edges.filter((e) => e.mine).length;
           if (!window.confirm(`Delete ${deck.name}? Your progress on its ${n} move${n === 1 ? '' : 's'} will be lost. Download a backup first if you might want it back.`)) return;
@@ -358,6 +368,7 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         readOnly
         onBack={toShelf}
         onExport={() => exportDeck(preview.deck, preview.edges)}
+        onCopy={() => copyDeck(preview.deck, preview.edges)}
         starter={{
           inLibrary: !!copy,
           onAdd: () => go({ page: 'deck', id: addStarter(lib, starter).id }),
@@ -403,6 +414,16 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
           const d = deckFor(lib.decks, lib.edges, color, path) ?? createDeck(lib, color);
           go({ page: 'deck', id: d.id }, path);
         }}
+      />
+    );
+  } else if (route.page === 'share') {
+    page = (
+      <Share
+        decks={lib.decks.filter((d) => (edgesBy.get(d.id) ?? []).length)}
+        ticked={route.id ? [route.id] : undefined}
+        pgnOf={(d) => serializeDeck(d, edgesBy.get(d.id) ?? [], { studyTags: false })}
+        backLabel={route.id ? (lib.decks.find((d) => d.id === route.id)?.name ?? 'Your library') : 'Your library'}
+        onBack={() => (route.id ? go({ page: 'deck', id: route.id }) : toShelf())}
       />
     );
   } else if (route.page === 'prep' && single) {
@@ -462,6 +483,7 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
           onOpen={(id) => go({ page: 'deck', id })}
           onTrain={(id) => go({ page: 'train', id })}
           onInsights={() => go({ page: 'insights' })}
+          onShare={() => go({ page: 'share' })}
           onTrainAll={() => {
             setAllOrder(null);
             go({ page: 'train', id: ALL });

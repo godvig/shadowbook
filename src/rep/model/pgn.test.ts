@@ -127,6 +127,13 @@ describe('writing PGN', () => {
     expect(pgnSource(parsePgn(out)[0].tags)).toEqual({ kind: 'pgn' });
   });
 
+  it('leaves the study tags out of a copy sent to another study', () => {
+    const { deck, edges } = asDeck(multi.split(/\n\n\n(?=\[Event)/)[0]);
+    const out = serializeDeck(deck, edges, { studyTags: false });
+    expect(out).not.toMatch(/ChapterURL|StudyName/);
+    expect(parsePgn(out)[0].name).toBe(deck.name);
+  });
+
   it('keeps the deck name through ChapterName, not only Event', () => {
     const { deck, edges } = asDeck(multi.split(/\n\n\n(?=\[Event)/)[0]);
     const out = serializeDeck({ ...deck, name: 'My "Italian"' }, edges);
