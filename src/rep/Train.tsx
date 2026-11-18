@@ -56,10 +56,12 @@ export interface TrainProps {
   onDone(): void;
   /** "Train all": what comes after this deck. */
   nextLabel?: string;
+  /** Train the items even when nothing is due (one position from Insights). */
+  practice?: boolean;
 }
 
 export function Train(p: TrainProps) {
-  const init = () => startSession(p.mode, p.items, p.edges, { now: new Date(), cards: p.cards, newLeft: p.newLeft, pause: p.settings.pauseAfterMove });
+  const init = () => startSession(p.mode, p.items, p.edges, { now: new Date(), cards: p.cards, newLeft: p.newLeft, pause: p.settings.pauseAfterMove, practice: p.practice });
   const [s, setS] = useState(init);
   const latest = useRef(s);
   const onEffects = useRef(p.onEffects);

@@ -1,86 +1,38 @@
 // "Build decks from your games": fetch the games in this browser, pick time classes, preview the decks with the
 // games and score behind every move of yours, then save. The counting is in model/fromGames.ts.
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchChessCom, fetchLichess } from '../lib/sources';
-import type { Game, TimeClass } from '../lib/types';
+import { useState } from 'react';
+import type { Game } from '../lib/types';
 import type * as db from './db';
+import { GamesForm, type Fetched } from './GamesForm';
 import { ucisToSanLine } from '../lib/chess';
 import { mainLine, makeMain } from './model/deck';
-import { buildDecks, commitBuild, gamesInWindow, pickGames, PICK, planBuild, type GamesSite, type PlannedDeck } from './model/fromGames';
+import { buildDecks, commitBuild, planBuild, type GamesSite, type PlannedDeck } from './model/fromGames';
 import { loadOpenings } from './model/openings';
 import type { Card, Color, LibraryData } from './model/types';
 import { RepTree } from './RepTree';
 import { buildTree } from './tree';
 
-const SITES: Record<GamesSite, string> = { chesscom: 'chess.com', lichess: 'Lichess' };
-const CLASS_NAMES: Record<TimeClass, string> = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', classical: 'Classical', daily: 'Daily', unknown: 'Other' };
-/** Lichess sends games one by one, so the window is capped at this many. */
-const LICHESS_MAX = 1000;
 const pct = (points: number, games: number) => `${Math.round((100 * points) / games)}%`;
 const colorName = (c: Color) => (c === 'w' ? 'White' : 'Black');
-
-interface Fetched {
-  site: GamesSite;
-  username: string;
-  months: number;
-  games: Game[];
-  counts: [TimeClass, number][];
-}
 
 export function FromGames({
   lib,
   cards,
+  initial,
   onSaved,
 }: {
   lib: LibraryData;
   cards: Map<string, Card>;
+  initial?: { site: GamesSite; username: string };
   /** Called with what was saved, as one sentence for the person. */
   onSaved(next: LibraryData, change: db.Change, message: string): void;
 }) {
-  const [site, setSite] = useState<GamesSite>('chesscom');
-  const [username, setUsername] = useState('');
   const [color, setColor] = useState<Color | 'both'>('both');
-  const [months, setMonths] = useState(PICK.months);
-  const [fetched, setFetched] = useState<Fetched | null>(null);
-  const [classes, setClasses] = useState<TimeClass[]>([]);
-  const [max, setMax] = useState(PICK.games);
   const [plan, setPlan] = useState<PlannedDeck[] | null>(null);
   const [skip, setSkip] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState('');
   const [note, setNote] = useState('');
-  const abort = useRef<AbortController | null>(null);
-  useEffect(() => () => abort.current?.abort(), []);
 
-  const picked = useMemo(() => (fetched ? pickGames(fetched.games, classes, max) : []), [fetched, classes, max]);
-
-  const fetchGames = async () => {
-    abort.current?.abort();
-    const ctl = (abort.current = new AbortController());
-    setBusy(true);
-    setNote('');
-    setPlan(null);
-    setFetched(null);
-    try {
-      const name = username.trim();
-      const since = new Date();
-      since.setMonth(since.getMonth() - months);
-      const opts = { onProgress: setProgress, signal: ctl.signal };
-      // chess.com archives are monthly; one more than the window covers its first month. The window cuts the rest.
-      const games = site === 'chesscom' ? await fetchChessCom(name, { ...opts, months: months + 1 }) : await fetchLichess(name, { ...opts, since: since.getTime(), max: LICHESS_MAX });
-      const w = gamesInWindow(games, name, months);
-      if (!w.games.length) throw new Error(`No games by ${name} in the last ${months} months.`);
-      setFetched({ site, username: name, months, ...w });
-      setClasses([w.counts[0][0]]);
-    } catch (e) {
-      if (!ctl.signal.aborted) setNote(e instanceof Error ? e.message : 'Could not fetch the games.');
-    }
-    setProgress('');
-    setBusy(false);
-  };
-
-  const preview = async () => {
-    if (!fetched) return;
+  const preview = async (picked: Game[], fetched: Fetched) => {
     const openings = await loadOpenings();
     const colors: Color[] = color === 'both' ? ['w', 'b'] : [color];
     const built = colors.flatMap((c) => buildDecks(picked, { username: fetched.username, color: c, openings }));
@@ -110,70 +62,25 @@ export function FromGames({
         Turns what you actually play into decks you can then correct. The games are fetched in this browser; only their opening moves are counted, and
         nothing is uploaded.
       </p>
-      <form
-        className="rep-games-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void fetchGames();
+      <GamesForm
+        initial={initial}
+        action={(n) => `Preview ${n} game${n === 1 ? '' : 's'}`}
+        onGo={(picked, fetched) => void preview(picked, fetched)}
+        onReset={() => {
+          setPlan(null);
+          setNote('');
         }}
-      >
-        <label>
-          <span className="muted small">Site</span>
-          <select value={site} onChange={(e) => setSite(e.target.value as GamesSite)}>
-            {Object.entries(SITES).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="muted small">Username</span>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} autoCapitalize="off" autoCorrect="off" spellCheck={false} />
-        </label>
-        <label>
-          <span className="muted small">Months back</span>
-          <input type="number" min={1} max={120} value={months} onChange={(e) => setMonths(Math.max(1, Math.min(120, Number(e.target.value) || PICK.months)))} />
-        </label>
-        <button className="btn" disabled={!username.trim() || busy}>
-          {busy ? 'Fetching…' : 'Fetch games'}
-        </button>
-      </form>
-      {progress && <p className="muted small">{progress}</p>}
-
-      {fetched && (
-        <div className="rep-games-pick">
-          <p className="small">
-            {fetched.games.length} games by {fetched.username} on {SITES[fetched.site]} in the last {fetched.months} months.
-          </p>
-          <fieldset>
-            <legend className="muted small">Time classes</legend>
-            {fetched.counts.map(([tc, k]) => (
-              <label key={tc} className="rep-check">
-                <input type="checkbox" checked={classes.includes(tc)} onChange={(e) => setClasses(e.target.checked ? [...classes, tc] : classes.filter((x) => x !== tc))} />
-                {CLASS_NAMES[tc]} ({k})
-              </label>
-            ))}
-          </fieldset>
-          <div className="row">
-            <label>
-              <span className="muted small">Newest games to use</span>
-              <input type="number" min={10} max={5000} step={50} value={max} onChange={(e) => setMax(Math.max(10, Number(e.target.value) || PICK.games))} />
-            </label>
-            <label>
-              <span className="muted small">Colour</span>
-              <select value={color} onChange={(e) => setColor(e.target.value as Color | 'both')}>
-                <option value="both">White and Black</option>
-                <option value="w">White</option>
-                <option value="b">Black</option>
-              </select>
-            </label>
-            <button className="btn" disabled={!picked.length} onClick={() => void preview()}>
-              Preview {picked.length} game{picked.length === 1 ? '' : 's'}
-            </button>
-          </div>
-        </div>
-      )}
+        extra={
+          <label>
+            <span className="muted small">Colour</span>
+            <select value={color} onChange={(e) => setColor(e.target.value as Color | 'both')}>
+              <option value="both">White and Black</option>
+              <option value="w">White</option>
+              <option value="b">Black</option>
+            </select>
+          </label>
+        }
+      />
 
       {plan && plan.length > 0 && (
         <div className="rep-games-plan">

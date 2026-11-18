@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type * as db from './db';
 import { FromGames } from './FromGames';
+import type { GamesSite } from './model/fromGames';
 import { chapterSource, fetchStudy, pgnSource } from './lichessStudy';
 import { parseBackup } from './model/backup';
 import { importMessage, importText } from './model/importer';
@@ -22,6 +23,8 @@ export function AddDialog(props: {
   open: AddPanel | 'menu' | null;
   lib: LibraryData;
   cards: Map<string, Card>;
+  /** Prefill for "Build decks from your games". */
+  initial?: { site: GamesSite; username: string };
   onClose(): void;
   onImported(next: LibraryData, change: db.Change, firstId?: string): void;
   /** Decks built from games were saved: close, and say so on the shelf. */
@@ -87,7 +90,7 @@ export function AddDialog(props: {
         </ul>
       )}
 
-      {panel === 'games' && <FromGames lib={props.lib} cards={props.cards} onSaved={props.onBuilt} />}
+      {panel === 'games' && <FromGames lib={props.lib} cards={props.cards} initial={props.initial} onSaved={props.onBuilt} />}
 
       {panel === 'study' && (
         <form

@@ -3,7 +3,7 @@ import { isLibraryHash, parseRoute, routeHash, type LibraryRoute } from './route
 
 describe('Library routes', () => {
   it('reads and writes every page', () => {
-    const routes: LibraryRoute[] = [{ page: 'shelf' }, { page: 'deck', id: 'a-1' }, { page: 'train', id: 'a-1' }, { page: 'starter', id: 'italian' }, { page: 'prep' }];
+    const routes: LibraryRoute[] = [{ page: 'shelf' }, { page: 'deck', id: 'a-1' }, { page: 'train', id: 'a-1' }, { page: 'starter', id: 'italian' }, { page: 'prep' }, { page: 'insights' }];
     for (const r of routes) expect(parseRoute(routeHash(r))).toEqual(r);
     expect(routeHash({ page: 'deck', id: 'a-1' })).toBe('#library/deck/a-1');
   });
@@ -12,7 +12,7 @@ describe('Library routes', () => {
     expect(parseRoute('#library')).toEqual({ page: 'shelf' });
     expect(parseRoute('#library/')).toEqual({ page: 'shelf' });
     expect(parseRoute('#library/deck')).toEqual({ page: 'shelf' });
-    expect(parseRoute('#library/insights')).toEqual({ page: 'shelf' });
+    expect(parseRoute('#library/settings')).toEqual({ page: 'shelf' });
   });
 
   it('knows which hashes belong to the Library', () => {

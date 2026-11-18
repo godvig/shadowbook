@@ -227,6 +227,19 @@ describe('the end of a line and adding moves', () => {
   });
 });
 
+describe('practice', () => {
+  it('trains a chosen position even when its card is not due, and does not grade it when right', () => {
+    const { deck, edges, all } = session({ states: { Bc4: 'learned' } });
+    const map = new Map(all.map((c) => [c.id, c]));
+    const drill = deckDrills(deck, edges, map).find((d) => d.moves[0] === 'f1c4')!;
+    const items = positionsFor([drill], () => 'w', { [deck.id]: edges });
+    expect(startSession('positions', items, { [deck.id]: edges }, { now, cards: all, newLeft: 0, pause: false }).phase).toBe('done');
+    const s = startSession('positions', items, { [deck.id]: edges }, { now, cards: all, newLeft: 0, pause: false, practice: true });
+    expect(s.phase).toBe('ask');
+    expect(run(s, [{ type: 'move', uci: 'f1c4' }]).effects).toEqual([]);
+  });
+});
+
 describe('positions mode', () => {
   it('puts the path on the board at once, asks the card, then moves to the next', () => {
     let { s } = session({ mode: 'positions', states: { Bc4: 'due', d4: 'due' } });

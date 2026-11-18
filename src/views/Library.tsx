@@ -7,8 +7,10 @@ import * as db from '../rep/db';
 import { DeckView } from '../rep/DeckView';
 import { backupJson } from '../rep/model/backup';
 import { cardId, deckCounts, deckDrills, drillQueue, gradeCard, isNew, syncCards, type Drill } from '../rep/model/cards';
-import { addPath, makeMain, newDeck, ownMoveIndex, signatureFen } from '../rep/model/deck';
-import { commitBuild } from '../rep/model/fromGames';
+import { addPath, makeMain, newDeck, ownMoveIndex, removeEdge, signatureFen } from '../rep/model/deck';
+import { commitBuild, type GamesSite } from '../rep/model/fromGames';
+import type { Habit } from '../rep/model/insights';
+import { Insights } from '../rep/Insights';
 import { V1_DECK_NAME } from '../rep/model/migrateV1';
 import { serializeDeck } from '../rep/model/pgn';
 import { linesFor, positionsFor, type Effect } from '../rep/model/session';
@@ -55,6 +57,8 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
   const [notice, setNotice] = useState('');
   /** "Start at move" changed in training without "Remember": for this visit only. */
   const [startFor, setStartFor] = useState<Record<string, number>>({});
+  /** "Train this position" from Insights: one card, trained on its own. */
+  const [single, setSingle] = useState<{ title: string; drills: Drill[] } | null>(null);
   /** "Train all": the decks in order, and how far along. */
   const [allOrder, setAllOrder] = useState<{ ids: string[]; at: number } | null>(null);
   const [error, setError] = useState('');
@@ -63,6 +67,7 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
   /** Moves to a page inside the Library; Back returns to the page before. */
   const go = (r: LibraryRoute, line: string[] = []) => {
     setDeckLine(line);
+    setNotice('');
     if (routeHash(r) !== location.hash) history.pushState(null, '', `/${routeHash(r)}`);
     setRoute(r);
     window.scrollTo(0, 0);
@@ -273,6 +278,48 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
     download(`${d.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'deck'}.pgn`, serializeDeck(d, edges), 'application/x-chess-pgn');
   const toShelf = () => go({ page: 'shelf' });
 
+  /** The player of the decks built from games most recently, to prefill the games forms. */
+  const lastPlayer = (): { site: GamesSite; username: string } | undefined => {
+    const built = lib.decks.flatMap((d) => (d.source.kind === 'games' ? [d.source] : [])).sort((a, b) => b.builtAt.localeCompare(a.builtAt))[0];
+    return built && { site: built.site, username: built.username };
+  };
+  /** The deck of that colour with your main move in this position, and the card's drill there. */
+  const drillAt = (color: Color, key: string): Drill | undefined => {
+    for (const d of lib.decks.filter((x) => x.color === color)) {
+      const found = drillsOf(d).find((x) => x.key === key);
+      if (found) return found;
+    }
+  };
+  /**
+   * "Fix it": the better move becomes your main move, and the old move leaves every deck of that colour that plays
+   * it there, with the lines after it, after a confirm. With no deck playing it, the deck that has the position.
+   */
+  const fixHabit = (h: Habit, better: string) => {
+    const ply = h.path.length;
+    const san = (u: string) => `${Math.floor(ply / 2) + 1}${ply % 2 ? '…' : '.'}${playUci(new Chess(positionAfter(h.path).fen), u).san}`;
+    const playing = lib.decks.filter((d) => d.color === h.color && lib.edges.some((e) => e.deckId === d.id && e.from === h.key && e.uci === h.uci && e.mine));
+    const targets = playing.length ? playing : [deckFor(lib.decks, lib.edges, h.color, h.path) ?? createDeck(lib, h.color)];
+    const plans = targets.map((d) => {
+      const edges = lib.edges.filter((e) => e.deckId === d.id);
+      const next = edges.some((e) => e.from === h.key && e.uci === h.uci) ? removeEdge(edges, h.key, h.uci) : edges;
+      return { d, next, gone: edges.length - next.length };
+    });
+    const removed = plans.filter((x) => x.gone > 0);
+    if (removed.length) {
+      const where = removed.map((x) => `${x.d.name}${x.gone > 1 ? ` (with the ${x.gone - 1} move${x.gone === 2 ? '' : 's'} after it)` : ''}`).join(', ');
+      if (!window.confirm(`Remove ${san(h.uci)} from ${where}? ${san(better)} becomes your main move there, as a new card.`)) return;
+    }
+    let base = latest.current ?? lib;
+    for (const x of plans) {
+      const r = withEdges(base, x.d, makeMain(addPath(x.next, x.d, [...h.path, better]), h.key, better));
+      base = r.next;
+      db.apply(r.change).catch(() => setError('Could not save to this browser.'));
+    }
+    latest.current = base;
+    setLib(base);
+    go({ page: 'deck', id: targets[0].id }, [...h.path, better]);
+    setNotice(`${san(better)} is now your main move in ${targets.map((d) => d.name).join(', ')}, as a new card.`);
+  };
   const deck = route.page === 'deck' || route.page === 'train' ? lib.decks.find((d) => d.id === route.id) : undefined;
   const starter = route.page === 'starter' ? STARTERS.find((s) => s.id === route.id) : undefined;
   const starterCopy = (id: string) => lib.decks.find((d) => d.source.kind === 'starter' && d.source.starterId === id);
@@ -336,6 +383,53 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         </button>
       </div>
     );
+  } else if (route.page === 'insights') {
+    page = (
+      <Insights
+        decks={lib.decks}
+        edges={lib.edges}
+        initial={lastPlayer()}
+        engine={lib.settings.engine}
+        hasCard={(color, key) => !!drillAt(color, key)}
+        onBack={toShelf}
+        onFix={fixHabit}
+        onTrain={(color, key) => {
+          const d = drillAt(color, key);
+          if (!d) return;
+          setSingle({ title: 'A position from your games', drills: [d] });
+          go({ page: 'prep' });
+        }}
+        onAddMove={(color, path) => {
+          const d = deckFor(lib.decks, lib.edges, color, path) ?? createDeck(lib, color);
+          go({ page: 'deck', id: d.id }, path);
+        }}
+      />
+    );
+  } else if (route.page === 'prep' && single) {
+    page = (
+      <Train
+        key={'single' + single.drills[0].card.id}
+        mode="positions"
+        fixed
+        title={single.title}
+        items={positionsFor(single.drills, (id) => lib.decks.find((d) => d.id === id)?.color ?? 'w', edgesRecord())}
+        edges={edgesRecord()}
+        cards={lib.cards}
+        newLeft={newLeft}
+        practice
+        nextLabel="Back to Insights"
+        settings={lib.settings}
+        decks={lib.decks}
+        allEdges={lib.edges}
+        dueBy={new Map()}
+        onEffects={applyEffects}
+        onSettings={changeSettings}
+        onDone={() => {
+          setSingle(null);
+          go({ page: 'insights' });
+        }}
+      />
+    );
   } else if (route.page === 'prep' && opponent) {
     page = (
       <Train
@@ -360,14 +454,6 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
     const infos: DeckInfo[] = lib.decks.map((d) => ({ deck: d, ...deckCounts(drillsOf(d), now, newLeft, d.startMove), signature: signatureFen(edgesBy.get(d.id) ?? []) }));
     page = (
       <>
-        {notice && (
-          <div className="notice shelf-notice" role="status">
-            <span>{notice}</span>
-            <button className="btn small ghost" onClick={() => setNotice('')} aria-label="Dismiss">
-              ✕
-            </button>
-          </div>
-        )}
         <Shelf
           decks={infos}
           moves={lib.cards.length}
@@ -375,6 +461,7 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
           starters={STARTERS.map((s) => ({ ...s, signature: signatureFen(starterDeck(s).edges), moves: s.edges.filter((e) => e.from.split(' ')[1] === s.color).length, deckId: starterCopy(s.id)?.id }))}
           onOpen={(id) => go({ page: 'deck', id })}
           onTrain={(id) => go({ page: 'train', id })}
+          onInsights={() => go({ page: 'insights' })}
           onTrainAll={() => {
             setAllOrder(null);
             go({ page: 'train', id: ALL });
@@ -404,9 +491,18 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
 
   return (
     <div className="rep-wrap">
+      {notice && (
+        <div className="notice shelf-notice" role="status">
+          <span>{notice}</span>
+          <button className="btn small ghost" onClick={() => setNotice('')} aria-label="Dismiss">
+            ✕
+          </button>
+        </div>
+      )}
       {page}
       <AddDialog
         open={adding}
+        initial={lastPlayer()}
         lib={lib}
         cards={cards}
         onClose={() => setAdding(null)}
@@ -414,8 +510,8 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         onBuilt={(next, change, message) => {
           onImported(next, change);
           setAdding(null);
-          setNotice(message);
           go({ page: 'shelf' });
+          setNotice(message);
         }}
         onNewDeck={(c) => {
           setAdding(null);

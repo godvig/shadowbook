@@ -30,6 +30,7 @@ export function Shelf(props: {
   onAddStarter(id: string): void;
   onPreviewStarter(id: string): void;
   onBackup(): void;
+  onInsights(): void;
 }) {
   const [filter, setFilter] = useState<'all' | 'w' | 'b'>('all');
   const [shown, setShown] = useState(STEP * 2);
@@ -60,6 +61,9 @@ export function Shelf(props: {
           )}
           <button className={`btn${empty ? '' : ' ghost'}`} onClick={() => props.onAdd()}>
             + Add
+          </button>
+          <button className="btn ghost" onClick={props.onInsights}>
+            Insights
           </button>
         </div>
       </div>

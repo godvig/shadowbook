@@ -217,3 +217,16 @@ body[data-view="library"] .footer { display: none; }
 }
 .train-switches summary { cursor: pointer; color: var(--muted); min-height: 32px; display: flex; align-items: center; }
 .train-switches label { display: flex; }
+
+/* Insights (Phase 6) */
+.insights h1 { margin: 0 0 4px; }
+.insights > .muted { margin: 0 0 16px; }
+.insights-summary { margin: 16px 0 0; }
+.insights-section { margin-top: 28px; }
+.insights-section h2 { display: flex; align-items: baseline; gap: 8px; }
+.insight-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 12px; }
+.insight-list > .card + .card { margin-top: 0; }
+.insight-row { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 16px; align-items: start; padding: 14px; }
+.insight-row p { margin: 0 0 6px; }
+.insight-title { font-weight: 600; }
+@media (max-width: 520px) { .insight-row { grid-template-columns: 96px minmax(0, 1fr); gap: 12px; } }

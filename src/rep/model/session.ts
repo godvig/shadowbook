@@ -104,6 +104,7 @@ export interface Session {
   notice?: string;
   /** "Add a move here": the moves played so far, and the session to go back to. */
   extend?: { moves: string[]; resume: Session };
+  practice: boolean;
   /** Decks' moves, for following another accepted move and for adding moves. */
   edges: Record<string, Edge[]>;
   tally: { right: number; hint: number; missed: number; taught: number };
@@ -134,6 +135,8 @@ export interface SessionOptions {
   cards: Card[];
   newLeft: number;
   pause: boolean;
+  /** Train the items even when nothing in them is due, e.g. one position chosen from Insights. */
+  practice?: boolean;
 }
 
 // ---------- building items ----------
@@ -221,6 +224,7 @@ export function startSession(mode: Session['mode'], items: Item[], edges: Record
     later: false,
     teaching: false,
     pause: o.pause,
+    practice: !!o.practice,
     edges,
     tally: { right: 0, hint: 0, missed: 0, taught: 0 },
   };
@@ -232,6 +236,7 @@ export const currentStep = (s: Session): Step | undefined => currentItem(s)?.ste
 
 /** Whether an item still has something to train: a due card, or a new card while today's budget lasts. */
 function worthTraining(s: Session, it: Item): boolean {
+  if (s.practice) return it.asked.length > 0;
   return it.asked.some((i) => {
     const id = it.steps[i].cardId!;
     const c = s.cards[id];
@@ -258,7 +263,7 @@ function arrive(s: Session): Session {
   if (!it.asked.includes(s.pos)) return { ...s, ...fresh, phase: 'auto' };
   const c = s.cards[st.cardId!];
   if (c && isNew(c) && !s.graded.includes(c.id)) {
-    if (s.newLeft > 0) return { ...s, ...fresh, phase: 'teach', teaching: true, newLeft: s.newLeft - 1 };
+    if (s.newLeft > 0 || s.practice) return { ...s, ...fresh, phase: 'teach', teaching: true, newLeft: s.newLeft - 1 };
     return { ...s, ...fresh, phase: 'auto', later: true };
   }
   return { ...s, ...fresh, phase: 'ask' };

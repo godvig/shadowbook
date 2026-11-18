@@ -15,7 +15,7 @@ Written 2026-11-15. Updated 2026-11-16 with the Phase 0 findings, decks built fr
 4. **Do not touch what is live** outside the Library: the Spar and Match tabs, the logo, the match pages and the Supabase function stay as they are unless a phase says otherwise.
 5. **Checks.** `npm run lint && npm run typecheck && npm test && npm run build` must pass before you report a phase as done.
 6. **Dependencies.** No new runtime dependencies without asking. Dev dependencies for tests are fine if you say which and why.
-7. **Privacy.** The Library is local-first. No Library data leaves the browser. Cookieless page counting is allowed, with a fixed path and a fixed title: every Library route counts as `/library` with the title "Library – Shadowbook". Deck ids, deck names and usernames never appear in a counted path or title. The only other calls are to the public Lichess and chess.com APIs, started by the user. Exception (Phase 3, approved 2026-11-16): with "Stockfish's recommendation" on (the default), training sends the position on the board (its FEN, nothing else) to Lichess's cloud evaluation; each answer is cached for 30 days, the Privacy page says so, and the switch is beside the board. No personal data, real names or Adam's own studies in fixtures: test data is synthetic.
+7. **Privacy.** The Library is local-first. No Library data leaves the browser. Cookieless page counting is allowed, with a fixed path and a fixed title: every Library route counts as `/library` with the title "Library – Shadowbook". Deck ids, deck names and usernames never appear in a counted path or title. The only other calls are to the public Lichess and chess.com APIs, started by the user. Exception (Phase 3, approved 2026-11-16; extended to Insights in Phase 6): with "Stockfish's recommendation" on (the default), training and Insights send positions (FEN only, nothing else) to Lichess's cloud evaluation; each answer is cached for 30 days, the Privacy page says so, and the switch is beside the board. No personal data, real names or Adam's own studies in fixtures: test data is synthetic.
 8. **Language.** Everything in the repo is English.
 9. **`docs/decisions.md` is Adam's.** Never create or edit it. In your phase report, list the decisions you made and what you rejected, so he can write it himself.
 10. **Phase report.** End each phase with: what changed (by file), the data model in ten lines, the hardest bug and how it was found, what is untested, open questions, a manual test script for desktop and phone, and five questions that check whether Adam understands what was built.
@@ -225,7 +225,7 @@ Done when: an existing v1 library opens with the same cards and due dates; a stu
 
 ### Phase 2 — Build from games, shelf, deck view, starter openings
 
-Status 2026-11-16: Phases 0, 1 and 2 are merged (`2955744`). Phase 3 is built on `feat/library-phase-3`.
+Status 2026-11-18: Phases 0 to 3 are merged (`4ae5696`). Phase 6 is built on `feat/library-phase-6`; then 4 and 5.
 
 Order inside this phase: **build a deck from my games first**, so Adam can load his own repertoire (he plays blitz on chess.com). Then the shelf, the deck view and the starter openings.
 
