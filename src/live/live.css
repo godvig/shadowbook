@@ -154,6 +154,11 @@
 .lv-line .picker button { min-width: 36px; min-height: 32px; border-radius: 6px; border: 1px solid var(--lv-line2); background: #1b1e24; color: var(--lv-text); font: 600 14px var(--lv-mono); cursor: pointer; }
 .lv-line .picker button:hover { border-color: var(--lv-gold); }
 .lv-stats h3 { margin: 8px 0 0; font: 600 14px var(--lv-mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--lv-text2); }
+.lv-meet { width: 100%; border-collapse: collapse; font-size: 14px; }
+.lv-meet caption { text-align: left; padding-bottom: 6px; }
+.lv-meet td { padding: 7px 10px 7px 0; border-top: 1px solid var(--lv-line); }
+.lv-meet td:last-child { text-align: right; padding-right: 0; font-family: var(--lv-mono); white-space: nowrap; }
+@media (max-width: 560px) { .lv-meet td:nth-child(3) { display: none; } }
 .lv-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .lv-tile { display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid var(--lv-line); border-radius: 10px; background: #121418; }
 .lv-tile strong { font: 800 36px/1 var(--lv-display); }

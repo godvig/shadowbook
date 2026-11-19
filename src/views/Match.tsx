@@ -245,6 +245,8 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
         })}
       </ol>
 
+      {played === 0 && <BeforeTheMatch />}
+
       {offline && <p className="lv-notice">Live data is not connected yet. Results, predictions and the chat appear here once the match hub is online.</p>}
       {notice && (
         <p className="lv-notice" role="alert">
@@ -1212,5 +1214,69 @@ function PlayerMark({ tone, initials, country, label, bands }: { tone: 'gold' | 
       </span>
       <span className="lv-mark-country">{country}</span>
     </div>
+  );
+}
+
+
+/** Their earlier games at standard chess. Checked against 365chess.com on 2026-11-19; shown until game 1 is finished. */
+const MEETINGS: { year: number; event: string; kind: 'Classical' | 'Rapid' | 'Blitz'; white: 'gukesh' | 'sindarov'; result: '1-0' | '0-1' | '½-½' }[] = [
+  { year: 2018, event: 'Moscow Open', kind: 'Classical', white: 'gukesh', result: '0-1' },
+  { year: 2022, event: 'Sharjah Masters', kind: 'Classical', white: 'sindarov', result: '1-0' },
+  { year: 2026, event: 'Tata Steel Masters', kind: 'Classical', white: 'sindarov', result: '½-½' },
+  { year: 2026, event: 'GCT Super Rapid Poland', kind: 'Rapid', white: 'sindarov', result: '0-1' },
+  { year: 2026, event: 'GCT Super Blitz Poland', kind: 'Blitz', white: 'sindarov', result: '1-0' },
+  { year: 2026, event: 'GCT Super Blitz Poland', kind: 'Blitz', white: 'gukesh', result: '0-1' },
+];
+
+function BeforeTheMatch() {
+  const won = (who: 'gukesh' | 'sindarov', classical: boolean) =>
+    MEETINGS.filter((m) => (m.kind === 'Classical') === classical && m.result !== '½-½' && (m.result === '1-0') === (m.white === who)).length;
+  return (
+    <section className="lv-card" aria-labelledby="lv-before-h">
+      <div className="lv-head">
+        <h2 id="lv-before-h">Before the first move</h2>
+        <span className="lv-muted">Both players are 20. No world championship match has been younger.</span>
+      </div>
+      <div className="lv-tiles">
+        <div className="lv-tile">
+          <strong className="blue">
+            {won('gukesh', true)}–{won('sindarov', true)}
+          </strong>
+          <span>Classical wins, Gukesh–Sindarov</span>
+          <span className="lv-muted small">Three games, one drawn. The champion has never beaten the challenger at classical chess.</span>
+        </div>
+        <div className="lv-tile">
+          <strong>
+            {won('gukesh', false)}–{won('sindarov', false)}
+          </strong>
+          <span>Rapid and blitz wins</span>
+          <span className="lv-muted small">All three in Poland this year, their first games as champion and challenger.</span>
+        </div>
+        <div className="lv-tile">
+          <strong>14</strong>
+          <span>Classical games in Geneva</span>
+          <span className="lv-muted small">First to 7½ points. Game 1 is on 24 November.</span>
+        </div>
+      </div>
+      <table className="lv-meet">
+        <caption className="lv-muted small">Every earlier game at standard chess</caption>
+        <tbody>
+          {MEETINGS.map((m, i) => (
+            <tr key={i}>
+              <td>{m.year}</td>
+              <td>{m.event}</td>
+              <td className="lv-muted">{m.kind}</td>
+              <td>
+                {NAMES[m.white]} – {NAMES[m.white === 'gukesh' ? 'sindarov' : 'gukesh']}
+              </td>
+              <td>{m.result}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="lv-muted small">
+        Want a feel for how they open? <a href="#spar">Play their openings</a> before they do.
+      </p>
+    </section>
   );
 }
