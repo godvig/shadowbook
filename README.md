@@ -151,7 +151,7 @@ CI runs all three on every push.
 
 ## Support
 
-Shadowbook is free, with no ads. If it helps your chess, you can [buy me a coffee](https://ko-fi.com/godvig).
+Shadowbook is free, with no ads. If it helps your chess, you can [buy me a coffee](https://ko-fi.com/godvig?ref=shadowbook-readme).
 
 ## How it is built
 

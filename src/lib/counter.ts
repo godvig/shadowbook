@@ -4,6 +4,7 @@
 // code from the Lichess login. This module sends exactly five things and nothing else:
 //   the page (site + path, never anything after ? or #), the page title, the site the visitor came from
 //   (first view only), the screen width, and a campaign tag if the link carried one (utm_source, ref…).
+// A named event (one so far: a click on the support link) sends only the site, the event's name and a title.
 // No cookies are set and nothing is saved in the browser. Nothing is sent from other hosts (forks, localhost),
 // from automated browsers, or when the browser asks not to be tracked.
 
@@ -77,6 +78,32 @@ export function countUrl(v: Visit, rnd: string): string {
   return `${ENDPOINT}?${params}`;
 }
 
+/** The request that counts one event, such as a click. It carries the site and the event's name, nothing about the page. */
+export function eventUrl(host: string, name: string, title: string, rnd: string): string {
+  return `${ENDPOINT}?${new URLSearchParams({ p: `${host}/${name}`, t: title, e: 'true', rnd })}`;
+}
+
+/** True when this browser on this host is counted at all. */
+function counting(): boolean {
+  const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
+  return (
+    skipReason({
+      host: location.host,
+      doNotTrack: nav.doNotTrack === '1' || nav.globalPrivacyControl === true,
+      automated: nav.webdriver === true,
+      framed: window.self !== window.top,
+      prerendering: (document as Document & { prerendering?: boolean }).prerendering === true,
+    }) === null
+  );
+}
+
+/** sendBeacon survives the page closing; an image request is the fallback where it is unavailable or refused. */
+function send(url: string): void {
+  if (!navigator.sendBeacon?.(url)) new Image().src = url;
+}
+
+const rnd = () => Math.random().toString(36).slice(2, 7);
+
 let counted = 0;
 
 /**
@@ -84,29 +111,26 @@ let counted = 0;
  * site, such as on the way back from the Lichess login.
  */
 export function countView(path: string, { referrer = true }: { referrer?: boolean } = {}): void {
-  const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
-  const reason = skipReason({
-    host: location.host,
-    doNotTrack: nav.doNotTrack === '1' || nav.globalPrivacyControl === true,
-    automated: nav.webdriver === true,
-    framed: window.self !== window.top,
-    prerendering: (document as Document & { prerendering?: boolean }).prerendering === true,
-  });
-  if (reason) return;
+  if (!counting()) return;
 
   const first = counted++ === 0;
-  const url = countUrl(
-    {
-      host: location.host,
-      path,
-      title: document.title,
-      // Where the visitor came from only says something on the first view; later views are moves inside the app.
-      referrer: first && referrer ? outsideReferrer(document.referrer, location.host) : '',
-      search: location.search,
-      screenWidth: window.screen.width,
-    },
-    Math.random().toString(36).slice(2, 7),
+  send(
+    countUrl(
+      {
+        host: location.host,
+        path,
+        title: document.title,
+        // Where the visitor came from only says something on the first view; later views are moves inside the app.
+        referrer: first && referrer ? outsideReferrer(document.referrer, location.host) : '',
+        search: location.search,
+        screenWidth: window.screen.width,
+      },
+      rnd(),
+    ),
   );
-  // sendBeacon survives the page closing; an image request is the fallback where it is unavailable or refused.
-  if (!navigator.sendBeacon?.(url)) new Image().src = url;
+}
+
+/** Count one named event, under the same rules as page views. */
+export function countEvent(name: string, title: string): void {
+  if (counting()) send(eventUrl(location.host, name, title, rnd()));
 }

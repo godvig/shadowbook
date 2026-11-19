@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { campaignQuery, countUrl, outsideReferrer, skipReason, type Browser, type Visit } from './counter';
+import { campaignQuery, countUrl, eventUrl, outsideReferrer, skipReason, type Browser, type Visit } from './counter';
 
 const visitor: Browser = { host: 'shadowbook.godvig.com', doNotTrack: false, automated: false, framed: false, prerendering: false };
 const visit: Visit = {
@@ -82,5 +82,12 @@ describe('outsideReferrer', () => {
   it('is empty for this site itself and for no referrer', () => {
     expect(outsideReferrer('https://shadowbook.godvig.com/', host)).toBe('');
     expect(outsideReferrer('', host)).toBe('');
+  });
+});
+
+describe('eventUrl', () => {
+  it('sends the site, the event name and a title, marked as an event', () => {
+    const q = new URL(eventUrl('shadowbook.godvig.com', 'ko-fi', 'Support link', 'abc12')).searchParams;
+    expect(Object.fromEntries(q)).toEqual({ p: 'shadowbook.godvig.com/ko-fi', t: 'Support link', e: 'true', rnd: 'abc12' });
   });
 });

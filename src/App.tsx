@@ -10,7 +10,7 @@ import { Privacy } from './views/Privacy';
 import type { LibraryStart } from './views/Library';
 import { isLibraryOAuthReturn, isOAuthReturn } from './live/lichessAuth';
 import { MATCH_PAGES, MATCH_PATH, isMatchPath, matchLang } from './live/routes';
-import { countView } from './lib/counter';
+import { countEvent, countView } from './lib/counter';
 import { isLibraryHash } from './rep/route';
 
 // The Library (and its opening names) loads only when opened, so Spar and Match do not carry it.
@@ -180,7 +180,10 @@ export default function App() {
           <a href="https://github.com/CSSLab/maia3">Maia3</a>, a neural network trained to play like humans of a given rating. Everything runs in your
           browser. Free and open source (AGPL-3.0). Built by{' '}
           <a href="https://adamenglund.eu/">Adam Englund</a>. If it helps your chess, you can{' '}
-          <a href="https://ko-fi.com/godvig">buy me a coffee</a>.
+          <a href="https://ko-fi.com/godvig?ref=shadowbook" onClick={() => countEvent('ko-fi', 'Support link')}>
+            buy me a coffee
+          </a>
+          .
         </footer>
       </main>
     </>

@@ -9,7 +9,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
         ← Back
       </button>
       <h1>Privacy</h1>
-      <p className="muted">Last updated 18 November 2026</p>
+      <p className="muted">Last updated 19 November 2026</p>
 
       <h2>The short version</h2>
       <p>
@@ -70,7 +70,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
         <li>
           <strong>What is counted:</strong> page views, to see which parts of the site are used and where visitors come from. Each view sends the page
           address (never what comes after <code>?</code> or <code>#</code>), the page title, the site that linked you here, your screen width and, if the
-          link had one, a campaign tag.
+          link had one, a campaign tag. One click is counted too: the "buy me a coffee" link in the footer, as a bare total.
         </li>
         <li>
           <strong>Who counts:</strong> <a href="https://www.goatcounter.com/help/gdpr">GoatCounter</a>. It keeps totals (such as "40 visits from
