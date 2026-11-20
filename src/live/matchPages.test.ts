@@ -15,8 +15,9 @@ describe('match pages', () => {
   for (const page of PAGES) {
     const info = MATCH_PAGES[page.lang as MatchLang];
 
-    it(`${page.lang}: the committed page is what the script writes`, () => {
-      expect(read(fileFor(page))).toBe(renderPage(page));
+    it(`${page.lang}: is generated into a git-ignored folder`, () => {
+      const top = fileFor(page).split('/')[0];
+      expect(read('.gitignore')).toContain(`/${top}/`);
     });
 
     it(`${page.lang}: path and title match the app`, () => {
@@ -43,7 +44,6 @@ describe('match pages', () => {
 
     it(`${page.lang}: is in the sitemap and in the build`, () => {
       expect(read('public/sitemap.xml')).toContain(`<loc>${SITE}${page.path}</loc>`);
-      if (page.lang !== 'en') expect(read('vite.config.ts')).toContain(`'${fileFor(page)}'`);
     });
 
     it(`${page.lang}: says the same facts as the English page`, () => {

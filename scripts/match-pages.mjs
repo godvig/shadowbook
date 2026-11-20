@@ -4,8 +4,8 @@
 //   /uz/shaxmat-jahon-chempionati-2026/      (uz)
 //   /hi/vishwa-shatranj-championship-2026/   (hi)
 // Each page carries its own title, description, hreflang links, Open Graph tags and structured data,
-// and the app mounts on top of it. The sitemap is written from the same list. Run `npm run match-pages` after changing a text; a test fails if the
-// committed pages no longer match this file. Paths and titles must also match src/live/routes.ts.
+// and the app mounts on top of it. The sitemap is written from the same list. The pages are generated before `npm run dev`
+// and `npm run build` and are git-ignored; run `npm run match-pages` after changing a text to refresh the committed sitemap. Paths and titles must also match src/live/routes.ts.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
