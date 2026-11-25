@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Board } from '../components/Board';
 import { sansToUcis } from '../lib/chess';
 import { MAIA_ELO_MAX } from '../lib/maia';
@@ -7,7 +8,7 @@ import { availablePresets, bookExit, loadPreset, type PresetId } from '../lib/pr
 import { SourceError } from '../lib/sources';
 import * as api from '../live/api';
 import { completeLogin, getToken, isOAuthReturn, login, logout } from '../live/lichessAuth';
-import { clocksAt, countdown, pointsFor, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, winnerOf } from '../live/match';
+import { clocksAt, communityCall, countdown, pointsFor, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, stepKey, winnerOf } from '../live/match';
 import { NAMES, type Finalist, type LiveGame, type Me, type Message, type Pick, type SyncSettings } from '../live/types';
 import type { Color } from '../lib/types';
 import type { GameSettings } from './Game';
@@ -42,7 +43,9 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [matchTally, setMatchTally] = useState<Partial<Record<Finalist, number>>>({});
   const [matchWinner, setMatchWinner] = useState<Finalist | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  // The login control lives in the app's top bar, in a slot App renders on the match view.
+  const [accountSlot, setAccountSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setAccountSlot(document.getElementById('topbar-account')), []);
   const [tally, setTally] = useState<Record<number, Partial<Record<Pick, number>>>>({});
   const [leaders, setLeaders] = useState<{ username: string; points: number; correct: number }[]>([]);
   const [me, setMe] = useState<Me | null>(null);
@@ -254,76 +257,45 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
         </p>
       )}
 
-      <div className="lv-account">
-        {me ? (
-          <>
-            Logged in as <strong>{me.username}</strong>
-            {me.admin && <span className="lv-chip">admin</span>}
-            <button
-              className="lv-link"
-              onClick={async () => {
+      {accountSlot &&
+        createPortal(
+          <AccountMenu
+            me={me}
+            onLogout={async () => {
+              await logout();
+              setMe(null);
+            }}
+            onDownload={() =>
+              guard(async () => {
+                const data = await api.myData();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+                a.download = `shadowbook-${me!.username}.json`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+              })
+            }
+            onDelete={() =>
+              guard(async () => {
+                await api.deleteMe();
                 await logout();
                 setMe(null);
-              }}
-            >
-              Log out
-            </button>
-            <button
-              className="lv-link"
-              onClick={() =>
-                guard(async () => {
-                  const data = await api.myData();
-                  const a = document.createElement('a');
-                  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-                  a.download = `shadowbook-${me.username}.json`;
-                  a.click();
-                  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-                })
-              }
-            >
-              Download my data
-            </button>
-            {confirmDelete ? (
-              <span className="lv-confirm">
-                Delete your profile, predictions, messages and reactions for good?{' '}
-                <button
-                  className="lv-btn small danger"
-                  onClick={() =>
-                    guard(async () => {
-                      await api.deleteMe();
-                      await logout();
-                      setMe(null);
-                      setConfirmDelete(false);
-                      setNotice('Your account and everything in it has been deleted.');
-                      refreshStats();
-                    })
-                  }
-                >
-                  Yes, delete
-                </button>{' '}
-                <button className="lv-link" onClick={() => setConfirmDelete(false)}>
-                  Cancel
-                </button>
-              </span>
-            ) : (
-              <button className="lv-link" onClick={() => setConfirmDelete(true)}>
-                Delete my account
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            Guests can follow everything.{' '}
-            <button className="lv-btn small gold" onClick={() => login()}>
-              Log in with Lichess
-            </button>{' '}
-            to predict and chat.{' '}
-            <button className="lv-link" onClick={onPrivacy}>
-              What we store
-            </button>
-          </>
+                setNotice('Your account and everything in it has been deleted.');
+                refreshStats();
+              })
+            }
+            onPrivacy={onPrivacy}
+          />,
+          accountSlot,
         )}
-      </div>
+      {!me && (
+        <p className="lv-account">
+          Guests can follow everything. Log in with Lichess at the top right to predict and chat.{' '}
+          <button className="lv-link" onClick={onPrivacy}>
+            What we store
+          </button>
+        </p>
+      )}
 
       <CalledIt games={games} me={me} tally={tally} />
 
@@ -366,85 +338,116 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
         }
         me={me} onPost={(gid, ply, body) => guard(() => api.post(gid, ply, body))} onHide={(id) => guard(() => api.adminHide(id))} onBan={(id) => guard(() => api.adminBan(id))} />
 
-      <div className="lv-pair">
-        <section className="lv-card lv-games" aria-labelledby="lv-games-h">
-          <div className="lv-head">
-            <h2 id="lv-games-h">The games</h2>
-            <RemindButton games={games.filter((g) => g.status === 'scheduled')} label="Add all games to my calendar" file="shadowbook-world-championship.ics" />
-          </div>
-          <div className="lv-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>White</th>
-                  <th>Result</th>
-                  <th>Opening</th>
-                  <th>Community call</th>
-                  <th>Spar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {games.map((g) => {
-                  const pct = percentages(tally[g.id] ?? {});
-                  const top = (Object.entries(pct) as [Pick, number][]).sort((a, b) => b[1] - a[1])[0];
-                  const w = winnerOf(g);
-                  return (
-                    <tr key={g.id}>
+      <StatsSection games={games} tally={tally} me={me} />
+
+      <section className="lv-card lv-games" aria-labelledby="lv-games-h">
+        <div className="lv-head">
+          <h2 id="lv-games-h">Game summaries</h2>
+          <RemindButton games={games.filter((g) => g.status === 'scheduled')} label="Add all games to my calendar" file="shadowbook-world-championship.ics" />
+        </div>
+        <div className="lv-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>White</th>
+                <th>Result</th>
+                <th className="op">Opening</th>
+                <th>Community call</th>
+                <th className="spar">Spar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {games.map((g) => {
+                const w = winnerOf(g);
+                const opening = g.opening ?? '–';
+                const canSpar = g.status !== 'scheduled' && !!g.pgn && !!g.white && !!g.black && presets.includes(g.white) && presets.includes(g.black);
+                const spar = !canSpar ? (
+                  '–'
+                ) : sparRow === g.id ? (
+                  <span className="lv-chips">
+                    <button className="lv-chip-btn" onClick={() => sparOpening(g, 'w')} title={`You play White against ${NAMES[g.black!]}’s bot`}>
+                      as White
+                    </button>
+                    <button className="lv-chip-btn" onClick={() => sparOpening(g, 'b')} title={`You play Black against ${NAMES[g.white!]}’s bot`}>
+                      as Black
+                    </button>
+                  </span>
+                ) : (
+                  <button className="lv-chip-btn" onClick={() => setSparRow(g.id)}>
+                    Spar this opening
+                  </button>
+                );
+                const underRow = !!g.opening || canSpar;
+                return (
+                  <Fragment key={g.id}>
+                    <tr className={underRow ? 'has-op' : undefined}>
                       <td className="mono">{g.id}</td>
-                      <td>{g.white ? NAMES[g.white] : '–'}</td>
-                      <td className={w === 'gukesh' ? 'gold' : w === 'sindarov' ? 'blue' : ''}>
-                        {g.status === 'finished' ? (w === 'draw' ? 'Draw' : w ? `${NAMES[w]} won` : g.result) : g.status === 'live' ? 'Live now' : g.starts_at ? new Date(g.starts_at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Scheduled'}
-                      </td>
-                      <td>{g.opening ?? '–'}</td>
-                      <td className="mono">{top && top[1] ? `${top[0] === 'draw' ? 'Draw' : NAMES[top[0]]} ${top[1]}%` : '–'}</td>
+                      <td>{g.white ? <PlayerName who={g.white} /> : '–'}</td>
                       <td>
-                        {g.status !== 'scheduled' && g.pgn && g.white && g.black && presets.includes(g.white) && presets.includes(g.black) ? (
-                          sparRow === g.id ? (
-                            <span className="lv-chips">
-                              <button className="lv-chip-btn" onClick={() => sparOpening(g, 'w')} title={`You play White against ${NAMES[g.black]}’s bot`}>
-                                as White
-                              </button>
-                              <button className="lv-chip-btn" onClick={() => sparOpening(g, 'b')} title={`You play Black against ${NAMES[g.white]}’s bot`}>
-                                as Black
-                              </button>
-                            </span>
+                        {g.status === 'finished' ? (
+                          w === 'draw' ? (
+                            <strong className="lv-pname">Draw</strong>
+                          ) : w ? (
+                            <>
+                              <PlayerName who={w} /> won
+                            </>
                           ) : (
-                            <button className="lv-chip-btn" onClick={() => setSparRow(g.id)}>
-                              Spar this opening
-                            </button>
+                            g.result
                           )
+                        ) : g.status === 'live' ? (
+                          'Live now'
+                        ) : g.starts_at ? (
+                          new Date(g.starts_at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                         ) : (
-                          '–'
+                          'Scheduled'
                         )}
                       </td>
+                      <td className="op">{opening}</td>
+                      <td>
+                        <CallCell votes={tally[g.id] ?? {}} />
+                      </td>
+                      <td className="spar">
+                        {spar}
+                      </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-        <section className="lv-card" aria-labelledby="lv-lb-h">
-          <h2 id="lv-lb-h">Top predictors</h2>
-          <p className="lv-muted">1 point per correct call, 2 when fewer than a third of voters saw it coming.</p>
-          {leaders.length ? (
-            <ol className="lv-leaders">
-              {leaders.map((l, i) => (
-                <li key={l.username}>
-                  <span className="mono rank">{i + 1}</span>
-                  <span className="who">{l.username}</span>
-                  <span className="mono">{l.points}</span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="lv-muted">The table fills up after game 1.</p>
-          )}
-        </section>
-      </div>
+                    {/* Narrow screens: the opening on its own line under the row, with the Spar button on the right. */}
+                    {underRow && (
+                      <tr className="lv-op-row">
+                        <td />
+                        <td colSpan={5}>
+                          <div className="lv-op-line">
+                            <span aria-hidden="true">{g.opening}</span>
+                            {spar}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section className="lv-card" aria-labelledby="lv-lb-h">
+        <h2 id="lv-lb-h">Leaderboard</h2>
+        <p className="lv-muted">1 point per correct call, 2 when fewer than a third of voters saw it coming.</p>
+        {leaders.length ? (
+          <ol className="lv-leaders">
+            {leaders.map((l, i) => (
+              <li key={l.username}>
+                <span className="mono rank">{i + 1}</span>
+                <span className="who">{l.username}</span>
+                <span className="mono">{l.points}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="lv-muted">The table fills up after game 1.</p>
+        )}
+      </section>
 
-      <StatsSection games={games} tally={tally} me={me} />
 
       {me?.admin && <ModerationPanel guard={guard} winner={matchWinner} onWinner={setMatchWinner} />}
       {me?.admin && <SyncPanel guard={guard} />}
@@ -597,6 +600,7 @@ function LiveRoom({
   const game = games.find((g) => g.id === active) ?? null;
   const sans = useMemo(() => sanMoves(game?.pgn ?? ''), [game?.pgn]);
   const [pinned, setPinned] = useState<number | null>(null);
+  const boardArea = useRef<HTMLDivElement>(null);
   const ply = pinned ?? sans.length;
   const pos = positionAt(sans, ply);
   const clocks = clocksAt(game?.pgn ?? '', ply);
@@ -628,7 +632,27 @@ function LiveRoom({
     <section className="lv-room" aria-labelledby="lv-room-h">
       <div className="lv-boardcol">
         {game ? (
-          <>
+          // Keys only act while this area has focus: a click or tap on the board or its buttons gives it focus,
+          // so the arrows never take over page scrolling or the chat input.
+          <div
+            ref={boardArea}
+            className="lv-boardarea"
+            tabIndex={-1}
+            role="group"
+            aria-label="Board. Left and right arrows step through the moves, Home and End jump to the start and end."
+            aria-keyshortcuts="ArrowLeft ArrowRight Home End"
+            onPointerDown={() => {
+              if (!boardArea.current?.contains(document.activeElement)) boardArea.current?.focus({ preventScroll: true });
+            }}
+            onKeyDown={(e) => {
+              if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+              const to = stepKey(e.key, ply, sans.length);
+              if (to === undefined) return;
+              e.preventDefault();
+              // End is the same as the Last move / Follow live button.
+              setPinned(e.key === 'End' ? null : to);
+            }}
+          >
             <div className="lv-player">
               <span className={game.black === 'gukesh' ? 'gold' : 'blue'}>{black}</span>
               <span className="mono">
@@ -652,7 +676,7 @@ function LiveRoom({
                 {game.status === 'live' ? 'Follow live' : 'Last move'}
               </button>
             </div>
-          </>
+          </div>
         ) : (
           <div className="lv-empty">
             <p className="mono">The board comes alive when game 1 starts.</p>
@@ -1203,6 +1227,100 @@ function ModerationPanel({ guard, winner, onWinner }: { guard: (fn: () => Promis
 }
 
 /** A drawn stand-in for a portrait: initials, the flag's colours and the country code. No photos, so no photo rights. */
+/** Top right of the page header: "Log in with Lichess", or the username with a small menu. */
+function AccountMenu({ me, onLogout, onDownload, onDelete, onPrivacy }: { me: Me | null; onLogout: () => void; onDownload: () => void; onDelete: () => void; onPrivacy: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      toggle.current?.focus();
+    };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+  useEffect(() => {
+    if (!open) setConfirmDelete(false);
+  }, [open]);
+
+  if (!me)
+    return (
+      <button className="acct-login" onClick={() => login()}>
+        Log in with Lichess
+      </button>
+    );
+  const pick = (fn: () => void) => () => {
+    setOpen(false);
+    fn();
+  };
+  return (
+    <div className="acct" ref={root}>
+      <button ref={toggle} className="acct-toggle" aria-haspopup="true" aria-expanded={open} aria-controls="acct-menu" onClick={() => setOpen((o) => !o)}>
+        <span className="acct-name">{me.username}</span>
+        {me.admin && <span className="acct-chip">admin</span>}
+        <span aria-hidden="true" className="acct-caret">▾</span>
+      </button>
+      {open && (
+        <div id="acct-menu" className="acct-menu">
+          <p className="acct-who">
+            Logged in with Lichess as <strong>{me.username}</strong>
+          </p>
+          <button onClick={pick(onDownload)}>Download my data</button>
+          <button onClick={pick(onPrivacy)}>What we store</button>
+          {confirmDelete ? (
+            <div className="acct-confirm">
+              <p>Delete your profile, predictions, messages and reactions for good?</p>
+              <button className="danger" onClick={pick(onDelete)}>
+                Yes, delete
+              </button>
+              <button onClick={() => setConfirmDelete(false)}>Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)}>Delete my account</button>
+          )}
+          <button className="acct-out" onClick={pick(onLogout)}>
+            Log out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A finalist's name as on the banner: bold, gold for Gukesh, blue for Sindarov. */
+function PlayerName({ who }: { who: Finalist }) {
+  return <strong className={`lv-pname ${who === 'gukesh' ? 'gold' : 'blue'}`}>{NAMES[who]}</strong>;
+}
+
+function CallCell({ votes }: { votes: Partial<Record<Pick, number>> }) {
+  const c = communityCall(votes);
+  if (c.kind === 'none') return <>–</>;
+  if (c.kind === 'few') return <span className="mono lv-muted-text">{c.calls === 1 ? '1 call' : `${c.calls} calls`}</span>;
+  const label = c.lead === 'split' ? 'Split' : `${c.lead === 'draw' ? 'Draw' : NAMES[c.lead]} ${c.pct[c.lead]}%`;
+  return (
+    <span className="lv-call">
+      <span className="lv-split mini" role="img" aria-label={`${c.calls} calls: Gukesh ${c.pct.gukesh}%, draw ${c.pct.draw}%, Sindarov ${c.pct.sindarov}%`}>
+        <span className="g" style={{ width: `${c.pct.gukesh}%` }} />
+        <span className="d" style={{ width: `${c.pct.draw}%` }} />
+        <span className="s" style={{ width: `${c.pct.sindarov}%` }} />
+      </span>
+      <span className={`mono${c.lead === 'gukesh' ? ' gold' : c.lead === 'sindarov' ? ' blue' : ''}`}>{label}</span>
+    </span>
+  );
+}
+
 function PlayerMark({ tone, initials, country, label, bands }: { tone: 'gold' | 'blue'; initials: string; country: string; label: string; bands: string[] }) {
   return (
     <div className={`lv-mark ${tone}`} role="img" aria-label={label}>

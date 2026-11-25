@@ -111,6 +111,8 @@ export default function App() {
           </button>
         </nav>
         <span className="spacer" />
+        {/* The match view puts its Lichess login here. */}
+        {view.name === 'match' && <span id="topbar-account" className="topbar-account" />}
         <a className="gh" href="https://github.com/godvig/shadowbook">GitHub</a>
       </header>
       <main className="page">

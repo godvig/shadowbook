@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countdown, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, pointsFor, positionAt, sanMoves, winnerOf } from './match';
+import { communityCall, countdown, stepKey, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, pointsFor, positionAt, sanMoves, winnerOf } from './match';
 import { base64url, challengeFor } from './lichessAuth';
 import type { LiveGame } from './types';
 
@@ -64,5 +64,49 @@ describe('PKCE', () => {
     const expected = createHash('sha256').update(verifier).digest('base64url');
     expect(await challengeFor(verifier)).toBe(expected);
     expect(base64url(new Uint8Array([251, 255]))).toBe('-_8');
+  });
+});
+
+describe('community call', () => {
+  it('shows nothing without calls', () => {
+    expect(communityCall({})).toEqual({ kind: 'none' });
+  });
+
+  it('shows only the count under five calls, even on a tie', () => {
+    expect(communityCall({ gukesh: 1 })).toEqual({ kind: 'few', calls: 1 });
+    expect(communityCall({ gukesh: 2, sindarov: 2 })).toEqual({ kind: 'few', calls: 4 });
+  });
+
+  it('shows the shares and the leader from five calls', () => {
+    expect(communityCall({ gukesh: 3, draw: 1, sindarov: 1 })).toEqual({ kind: 'bar', calls: 5, pct: { gukesh: 60, draw: 20, sindarov: 20 }, lead: 'gukesh' });
+  });
+
+  it('calls a tie for the lead a split', () => {
+    expect(communityCall({ gukesh: 2, draw: 1, sindarov: 2 })).toMatchObject({ kind: 'bar', lead: 'split' });
+    expect(communityCall({ draw: 3, sindarov: 3 })).toMatchObject({ kind: 'bar', lead: 'split' });
+    expect(communityCall({ gukesh: 2, draw: 2, sindarov: 2 })).toMatchObject({ kind: 'bar', lead: 'split' });
+  });
+
+  it('is not a split when only the trailing calls tie', () => {
+    expect(communityCall({ gukesh: 1, draw: 3, sindarov: 1 })).toMatchObject({ lead: 'draw' });
+  });
+
+  it('compares counts, not rounded percentages', () => {
+    // 68–67–66 rounds to 34–33–33: the lead is one call, and the counts decide it.
+    expect(communityCall({ gukesh: 67, draw: 67, sindarov: 66 })).toMatchObject({ lead: 'split' });
+    expect(communityCall({ gukesh: 68, draw: 67, sindarov: 66 })).toMatchObject({ lead: 'gukesh' });
+  });
+});
+
+describe('board keys', () => {
+  it('steps and jumps within the game, and ignores other keys', () => {
+    expect(stepKey('ArrowLeft', 3, 10)).toBe(2);
+    expect(stepKey('ArrowLeft', 0, 10)).toBe(0);
+    expect(stepKey('ArrowRight', 9, 10)).toBe(10);
+    expect(stepKey('ArrowRight', 10, 10)).toBe(10);
+    expect(stepKey('Home', 7, 10)).toBe(0);
+    expect(stepKey('End', 2, 10)).toBe(10);
+    expect(stepKey('ArrowUp', 2, 10)).toBeUndefined();
+    expect(stepKey(' ', 2, 10)).toBeUndefined();
   });
 });

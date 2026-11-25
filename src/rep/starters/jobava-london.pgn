@@ -1,0 +1,26 @@
+[Event "Jobava London"]
+[Orientation "white"]
+[Pitch "The London with the knight on c3: the same bishop on f4, plus Nb5 jumps at c7 when Black is careless."]
+
+1. d4 { Take the centre with the queen's pawn. } 1... d5
+( 1... Nf6 2. Nc3 { The Jobava knight: c3, not d2, so it can jump to b5 later. } 2... d5
+3. Bf4 { The London bishop, out before e3 shuts it in. Together with Nb5 it eyes c7. } )
+2. Nc3 { The Jobava knight: c3, not d2, so it can jump to b5 later. } 2... Nf6
+3. Bf4 { The London bishop, out before e3 shuts it in. Together with Nb5 it eyes c7. } 3... e6
+( 3... c5 4. e3 { Keep d4 protected and open a path for the f1 bishop. } 4... cxd4
+5. exd4 { Take back with the pawn: your pieces get the e-file and the e5 square. } 5... a6
+6. Nf3 { Develop and control e5. } 6... Nc6
+7. Be2 { A quiet square: unlike Bd3, it leaves the queen's view of d4 open. } 7... Bf5
+8. O-O { Castle: d4 is held twice, by the f3 knight and the queen. } )
+( 3... Bf5 4. e3 { Keep d4 protected; your f1 bishop can still come out. } 4... e6
+5. Nb5 { Knight and bishop both hit c7, so Black has to spend a move on it. } 5... Na6
+6. Nf3 { Develop and control e5. } 6... c6
+7. Nc3 { Back to c3: ...c6 took away the c6 square from Black's knight on a6. } )
+( 3... g6 4. e3 { Keep d4 protected and open a path for the f1 bishop. } 4... Bg7
+5. Nf3 { Develop and control e5. } 5... O-O
+6. Be2 { A safe square; against ...g6 the bishop has little to do on d3. } 6... c5
+7. O-O { Castle: d4 is held by the e3 pawn and the f3 knight. } )
+4. e3 { Keep d4 protected and open a path for the f1 bishop. } 4... Bd6
+5. Nb5 { Hit the bishop: Nxd6 would give you the bishop pair. } 5... Bb4+
+6. c3 { Block with a gain of time: the bishop must move again and still guard c7. } 6... Ba5
+7. Nf3 { Develop and control e5. If ...a6, the knight drops back to a3. } *

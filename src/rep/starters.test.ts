@@ -4,11 +4,12 @@ import { enumerateLines } from './model/lines';
 import { STARTERS, starterDeck } from './starters';
 
 describe('starter openings', () => {
-  it('has the eight openings of the plan, four for each colour', () => {
+  it('has the nine openings: the eight of the plan and the Jobava London', () => {
     expect(STARTERS.map((s) => [s.name, s.color])).toEqual([
       ['Italian Game', 'w'],
       ['Ruy Lopez', 'w'],
       ['London System', 'w'],
+      ['Jobava London', 'w'],
       ["Queen's Gambit", 'w'],
       ['Sicilian Defence', 'b'],
       ['French Defence', 'b'],

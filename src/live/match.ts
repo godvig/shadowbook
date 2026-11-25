@@ -100,3 +100,34 @@ export function clocksAt(pgn: string, ply: number): { w?: string; b?: string } {
   }
   return out;
 }
+
+/** What the Community call column shows: nothing, a count under five calls, or the shares with the leading call. */
+export type CommunityCall =
+  | { kind: 'none' }
+  | { kind: 'few'; calls: number }
+  | { kind: 'bar'; calls: number; pct: Record<Pick, number>; lead: Pick | 'split' };
+
+export const MIN_CALLS_FOR_BAR = 5;
+
+export function communityCall(votes: Partial<Record<Pick, number>>): CommunityCall {
+  const counts: [Pick, number][] = [
+    ['gukesh', votes.gukesh ?? 0],
+    ['draw', votes.draw ?? 0],
+    ['sindarov', votes.sindarov ?? 0],
+  ];
+  const calls = counts.reduce((n, [, c]) => n + c, 0);
+  if (!calls) return { kind: 'none' };
+  if (calls < MIN_CALLS_FOR_BAR) return { kind: 'few', calls };
+  // Compare raw counts, not rounded percentages: 2–2–1 is a split even though both round to 40%.
+  const [first, second] = [...counts].sort((a, b) => b[1] - a[1]);
+  return { kind: 'bar', calls, pct: percentages(votes), lead: first[1] === second[1] ? 'split' : first[0] };
+}
+
+/** The ply a board key moves to (Left/Right one move, Home/End to the ends), or undefined for any other key. */
+export function stepKey(key: string, ply: number, last: number): number | undefined {
+  if (key === 'ArrowLeft') return Math.max(0, ply - 1);
+  if (key === 'ArrowRight') return Math.min(last, ply + 1);
+  if (key === 'Home') return 0;
+  if (key === 'End') return last;
+  return undefined;
+}

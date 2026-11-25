@@ -113,7 +113,54 @@
 .lv-scroll { overflow-x: auto; }
 .lv-games table { width: 100%; border-collapse: collapse; min-width: 520px; font-size: 15px; }
 .lv-games th { text-align: left; font: 500 13px var(--lv-mono); color: var(--lv-muted); padding: 8px 8px 8px 0; }
-.lv-games td { padding: 10px 8px 10px 0; border-top: 1px solid var(--lv-line); }
+.lv-games td { padding: 10px 8px 10px 0; border-top: 1px solid var(--lv-line); vertical-align: middle; }
+.lv-games th.spar, .lv-games td.spar { text-align: right; padding-right: 0; white-space: nowrap; }
+.lv-games td.op { min-width: 200px; line-height: 1.35; }
+.lv-games .lv-op-row { display: none; }
+.lv-games .lv-chips { justify-content: flex-end; }
+.lv-pname { font-weight: 700; color: var(--lv-text); }
+.lv-muted-text { color: var(--lv-muted); }
+.lv-call { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.lv-split.mini { width: 56px; height: 8px; border-radius: 4px; flex: none; }
+/* Narrow: the opening leaves its column and gets a full-width line under its row. */
+@media (max-width: 720px) {
+  .lv-games table { min-width: 0; font-size: 14px; }
+  .lv-games .op, .lv-games .spar { display: none; }
+  .lv-games .lv-op-row { display: table-row; }
+  .lv-games tr.has-op > td { padding-bottom: 2px; }
+  .lv-games .lv-op-row td { border-top: 0; padding-top: 0; color: var(--lv-text2); font-size: 13px; line-height: 1.35; }
+  .lv-op-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+  .lv-op-line > span { flex: 1 1 160px; }
+  .lv-op-line > :last-child:not(span[aria-hidden]) { margin-left: auto; }
+  .lv-split.mini { width: 36px; }
+  .lv-call { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+.lv-boardarea { display: flex; flex-direction: column; gap: 8px; outline: none; border-radius: 10px; }
+.lv-boardarea:focus-visible { box-shadow: 0 0 0 2px var(--lv-blue); }
+
+/* The Lichess login in the app's top bar (outside .live, so the app's own colours). */
+.topbar-account { display: inline-flex; }
+.acct { position: relative; }
+.acct-login, .acct-toggle { min-height: 40px; padding: 0 14px; border-radius: 8px; font-weight: 600; font-size: 14px; font-family: inherit; cursor: pointer; }
+.acct-login { background: var(--gold); color: var(--gold-ink); border: 0; }
+.acct-toggle { display: inline-flex; align-items: center; gap: 8px; background: var(--panel); color: var(--text); border: 1px solid var(--line-2); max-width: 220px; }
+.acct-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-caret { color: var(--muted); font-size: 12px; }
+.acct-chip { font: 600 11px ui-monospace, monospace; text-transform: uppercase; background: var(--coral); color: var(--gold-ink); border-radius: 4px; padding: 2px 6px; }
+.acct-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: 260px; max-width: calc(100vw - 32px); display: flex; flex-direction: column; padding: 6px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); }
+.acct-menu p { margin: 0; padding: 8px 10px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+.acct-menu .acct-who strong { color: var(--text); }
+.acct-menu button { text-align: left; min-height: 40px; padding: 0 10px; background: none; border: 0; border-radius: 6px; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.acct-menu button:hover, .acct-menu button:focus-visible { background: var(--panel-2); }
+.acct-menu .acct-out { border-top: 1px solid var(--line); border-radius: 0 0 6px 6px; margin-top: 4px; }
+.acct-menu .danger { color: var(--coral-text); }
+/* Phones: keep the login on the first row, top right; the GitHub link and the alpha tag make room, on the match view only. */
+@media (max-width: 560px) {
+  .topbar:has(.topbar-account) a.gh, .topbar:has(.topbar-account) .tag { display: none; }
+  .acct-login, .acct-toggle { min-height: 36px; padding: 0 10px; font-size: 13px; }
+  .acct-toggle { max-width: 150px; }
+}
+.acct-confirm { display: flex; flex-direction: column; background: rgba(255, 155, 122, 0.08); border-radius: 6px; }
 .lv-leaders { list-style: none; margin: 0; padding: 0; }
 .lv-leaders li { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--lv-line); }
 .lv-leaders .rank { width: 24px; color: var(--lv-gold); }

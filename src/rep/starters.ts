@@ -1,4 +1,4 @@
-// The eight starter openings in ./starters/*.pgn: tags Event (name), Orientation and Pitch (one line for the card).
+// The nine starter openings in ./starters/*.pgn: tags Event (name), Orientation and Pitch (one line for the card).
 import { newDeck, turnOf } from './model/deck';
 import { parsePgn, type ParsedEdge } from './model/pgn';
 import type { Color, Deck, Edge } from './model/types';
@@ -14,8 +14,8 @@ export interface Starter {
 
 const files = import.meta.glob<string>('./starters/*.pgn', { query: '?raw', import: 'default', eager: true });
 
-// White first, in the order of the plan's table.
-const ORDER = ['italian', 'ruy-lopez', 'london', 'queens-gambit', 'sicilian', 'french', 'caro-kann', 'kings-indian'];
+// White first, in the order of the plan's table; the Jobava London was added after it, next to the London.
+const ORDER = ['italian', 'ruy-lopez', 'london', 'jobava-london', 'queens-gambit', 'sicilian', 'french', 'caro-kann', 'kings-indian'];
 
 export const STARTERS: Starter[] = Object.entries(files)
   .map(([path, text]) => {
