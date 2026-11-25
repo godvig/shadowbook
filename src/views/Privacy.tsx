@@ -2,7 +2,10 @@
 import { useEffect } from 'react';
 
 export function Privacy({ onBack }: { onBack: () => void }) {
-  useEffect(() => window.scrollTo(0, 0), []);
+  // Braces matter: scrollTo returns a Promise in newer browsers, and an effect must not return one.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <article className="privacy">
       <button className="link" onClick={onBack}>
