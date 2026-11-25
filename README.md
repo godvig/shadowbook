@@ -129,8 +129,9 @@ supabase/
 - **Prepared evaluations:** `npm run evals` writes `public/evals/game-N.json` for every finished match game that has
   none yet (`--force` redoes them), with Stockfish at depth 20 and two lines per position: a system `stockfish` binary
   if there is one, else stockfish.js run by Node, several engines in parallel. The games come from the match hub's
-  database (read only, with the publishable key) or from `--pgn file.pgn`. Run by hand after each game and commit the
-  files; about 1.5 minutes per game on four cores.
+  database (read only, with the publishable key) or from `--pgn file.pgn`. About 1.5 minutes per game on four cores.
+  [`.github/workflows/evals.yml`](.github/workflows/evals.yml) runs it every hour with the system Stockfish, commits
+  new files to main and starts the Pages deploy; it stops doing work once the match is over.
 - **Evaluations:** in this order, the first that has one: a prepared file (`public/evals/game-N.json`, when present), the
   broadcast's own `[%eval]` comments, this browser's cache, [Lichess cloud evaluation](https://lichess.org/api#tag/analysis/GET/api/cloud-eval)
   (one request at a time, a minute's pause after HTTP 429, at most 30 per page view), and finally [Stockfish](https://stockfishchess.org/) in the

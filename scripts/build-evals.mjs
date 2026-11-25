@@ -5,7 +5,10 @@
 //   npm run evals                      games from the match hub's database (read only, publishable key)
 //   npm run evals -- --pgn games.pgn   games from a PGN file; the game number comes from [Round "N"]
 //                                      (or --game N for a file with one game)
-//   options: --force (redo games that already have a file), --depth 20, --jobs 3, --engine /path/to/stockfish
+//   options: --force (redo games that already have a file), --games 2,3 (only these games), --depth 20,
+//            --jobs 3, --engine /path/to/stockfish
+// Exits 0 when there is nothing to do, non-zero on any error (so a failed scheduled run shows red). Only finished
+// games with moves get a file; nothing is written for any other game. .github/workflows/evals.yml runs it hourly.
 //
 // Engine: a system `stockfish` binary when there is one (or --engine), else Stockfish from the stockfish npm
 // package (stockfish.js, the full single-threaded build, GPL-3.0) run by Node. Each position: depth 20, MultiPV 2.
@@ -24,10 +27,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 
 function args(argv) {
-  const o = { force: false, depth: 20, jobs: Math.max(1, Math.min(4, cpus().length - 1)), pgn: null, game: null, engine: null };
+  const o = { force: false, games: null, depth: 20, jobs: Math.max(1, Math.min(4, cpus().length - 1)), pgn: null, game: null, engine: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--force') o.force = true;
+    else if (a === '--games') o.games = new Set(String(argv[++i]).split(',').filter(Boolean).map(Number));
     else if (a === '--depth') o.depth = Number(argv[++i]);
     else if (a === '--jobs') o.jobs = Number(argv[++i]);
     else if (a === '--pgn') o.pgn = argv[++i];
@@ -96,8 +100,18 @@ async function startEngine(path, depth) {
   const onLine = (line) => listeners.forEach((l) => l(line));
   const npmEngine = require('stockfish').findEngine('single');
   const [cmd, cmdArgs] = path ? [path, []] : [process.execPath, [npmEngine]];
-  const name = path ? `Stockfish (${path})` : `Stockfish ${require('stockfish/package.json').buildVersion} (stockfish.js, single-threaded)`;
+  let name = path ? `Stockfish (${path})` : `Stockfish ${require('stockfish/package.json').buildVersion} (stockfish.js, single-threaded)`;
   const p = spawn(cmd, cmdArgs, { stdio: ['pipe', 'pipe', 'inherit'] });
+  // An engine that cannot start or dies must fail the run, not leave it waiting until the job times out.
+  let dead = null;
+  const failers = new Set();
+  const die = (e) => {
+    dead ??= e;
+    failers.forEach((f) => f(dead));
+  };
+  p.on('error', (e) => die(new Error(`Could not start the engine (${cmd}): ${e.message}`)));
+  p.on('exit', (code, signal) => die(new Error(`The engine stopped (${signal ?? `exit code ${code}`}).`)));
+  p.stdin.on('error', () => {});
   let buf = '';
   p.stdout.on('data', (d) => {
     buf += d;
@@ -109,19 +123,25 @@ async function startEngine(path, depth) {
   });
   const send = (c) => p.stdin.write(`${c}\n`);
   const stop = () => {
+    p.removeAllListeners('exit');
     send('quit');
     setTimeout(() => p.kill(), 500).unref();
   };
   const waitFor = (test) =>
-    new Promise((resolve) => {
+    new Promise((resolve, reject) => {
+      if (dead) return reject(dead);
       const l = (line) => {
         if (test(line)) {
           listeners.delete(l);
+          failers.delete(reject);
           resolve(line);
         }
       };
       listeners.add(l);
+      failers.add(reject);
     });
+  // A system binary names itself ("id name Stockfish 16.1"); that goes into the files.
+  if (path) listeners.add((l) => l.startsWith('id name ') && (name = l.slice(8)));
   for (const c of ['uci', 'setoption name MultiPV value 2', 'setoption name Threads value 1', 'setoption name Hash value 64']) send(c);
   send('isready');
   await waitFor((l) => l === 'readyok');
@@ -163,7 +183,11 @@ async function main() {
   const games = o.pgn ? gamesFromPgn(o.pgn, o.game) : await gamesFromSupabase();
   const outDir = join(root, 'public/evals');
   mkdirSync(outDir, { recursive: true });
-  const todo = games.filter((g) => o.force || !existsSync(join(outDir, `game-${g.id}.json`)));
+  const todo = games
+    .filter((g) => !o.games || o.games.has(g.id))
+    // A finished game always has moves; an empty PGN would only write a file for the start position.
+    .filter((g) => positionsOf(g.pgn).length > 1)
+    .filter((g) => o.force || !existsSync(join(outDir, `game-${g.id}.json`)));
   if (!todo.length) return console.log(`Nothing to do: ${games.length} finished game(s), all have a file. Use --force to redo.`);
   const enginePath = o.engine ?? systemStockfish();
   const engines = await Promise.all(Array.from({ length: o.jobs }, () => startEngine(enginePath, o.depth)));

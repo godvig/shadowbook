@@ -1,0 +1,115 @@
+# Keeps public/evals/ up to date for the game review pages: every hour, prepared engine evaluations
+# (scripts/build-evals.mjs, system Stockfish, depth 20, two lines) for each finished match game that has none yet.
+# The games are read from the match hub's database with the publishable key already in src/live/config.ts:
+# read-only, as CLAUDE.md allows. No secrets.
+#
+# A push made with GITHUB_TOKEN does not start other workflows, so after committing new files this workflow
+# starts the Pages deploy itself with `gh workflow run` (workflow_dispatch events are the exception GitHub makes).
+# Once the match is over (every game finished with a file, or after 2026-12-14) each run stops at the first step.
+name: Engine evals
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      games:
+        description: 'Rebuild only these games even if they have a file, e.g. "2" or "2,3". Empty: only new games.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: evals
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      FORCE_GAMES: ${{ inputs.games }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Anything to do?
+        id: gate
+        run: |
+          set -euo pipefail
+          if [[ "$(date -u +%F)" > "2026-12-14" ]]; then
+            echo "The match is over (after 2026-12-14): nothing to do."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          url=$(grep -o 'https://[a-z0-9]*\.supabase\.co' src/live/config.ts | head -1)
+          key=$(grep -o 'sb_publishable_[A-Za-z0-9_-]*' src/live/config.ts | head -1)
+          games=$(curl -sf "$url/rest/v1/games?select=id,status&order=id" -H "apikey: $key")
+          total=$(jq length <<< "$games")
+          finished=$(jq -r '.[] | select(.status == "finished") | .id' <<< "$games")
+          missing=""
+          for id in $finished; do [ -f "public/evals/game-$id.json" ] || missing="$missing $id"; done
+          echo "$total games; finished: $(echo $finished); finished without a file:${missing:- none}."
+          if [ -n "$FORCE_GAMES" ]; then
+            echo "Manual run: rebuilding game(s) $FORCE_GAMES."
+          elif [ "$total" -gt 0 ] && [ "$(wc -w <<< "$finished")" -eq "$total" ] && [ -z "$missing" ]; then
+            echo "Every game of the match is finished and has a file: nothing to do."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          elif [ -z "$missing" ]; then
+            echo "No newly finished game: nothing to do."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - if: steps.gate.outputs.run == 'true'
+        run: npm ci
+
+      - name: Install Stockfish
+        id: engine
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -q
+          sudo apt-get install -y -q stockfish
+          sf=$(command -v stockfish || echo /usr/games/stockfish)
+          printf 'uci\nquit\n' | "$sf" | grep '^id name'
+          echo "path=$sf" >> "$GITHUB_OUTPUT"
+
+      - name: Build evals
+        if: steps.gate.outputs.run == 'true'
+        run: npm run evals -- --engine "${{ steps.engine.outputs.path }}" ${FORCE_GAMES:+--force --games "$FORCE_GAMES"}
+
+      - name: Commit and push new evals
+        id: commit
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          files=$(git status --porcelain --untracked-files=all -- public/evals | awk '{print $NF}' | grep -E '^public/evals/game-[0-9]+\.json$' || true)
+          if [ -z "$files" ]; then
+            echo "No new or changed files under public/evals/: done."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          nums=$(sed -E 's/.*game-([0-9]+)\.json/\1/' <<< "$files" | sort -n)
+          if [ "$(wc -l <<< "$nums")" -eq 1 ]; then list="game $nums"; else list="games $(paste -sd, - <<< "$nums" | sed 's/,/, /g')"; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898333+github-actions[bot]@users.noreply.github.com'
+          git add -- $files
+          git commit -m "Add engine evals for $list"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy the site
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
