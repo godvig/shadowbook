@@ -99,9 +99,19 @@ cg-board square.move-dest:hover { background: rgba(242, 181, 68, .35); }
 cg-board square.oc.move-dest { background: radial-gradient(transparent 0%, transparent 79%, rgba(20, 20, 20, .28) 80%); }
 cg-board square.check { background: radial-gradient(ellipse at center, rgba(255, 60, 60, 1) 0%, rgba(231, 0, 0, 1) 25%, rgba(169, 0, 0, 0) 89%); }
 .cg-wrap coords { font-size: 11px; font-weight: 600; }
-.cg-wrap coords.ranks coord:nth-child(odd), .cg-wrap coords.files coord:nth-child(even) { color: var(--board-light); }
-.cg-wrap coords.ranks coord:nth-child(even), .cg-wrap coords.files coord:nth-child(odd) { color: var(--board-dark); }
-.orientation-black .cg-wrap coords.ranks coord:nth-child(odd), .orientation-black .cg-wrap coords.files coord:nth-child(even) { color: var(--board-dark); }
+/* chessground's base CSS starts the file letters 24px in at full board width, so the row sticks out on the right and
+   makes phones scroll sideways. Keep the row inside the board, each letter in its own square's bottom-right corner. */
+.cg-wrap coords.files { left: 0; bottom: 0; }
+.cg-wrap coords.files coord { text-align: right; padding-right: 3px; }
+.cg-wrap coords.ranks coord:nth-child(odd) { color: var(--board-light); }
+.cg-wrap coords.ranks coord:nth-child(even) { color: var(--board-dark); }
+.orientation-black .cg-wrap coords.ranks coord:nth-child(odd) { color: var(--board-dark); }
+/* Each file letter sits on its own square, so it takes the other square colour: a1 is dark (light letter); with Black
+   at the bottom the row is a8…h8 and a8 is light (dark letter). The DOM order is a…h either way. */
+.cg-wrap coords.files coord:nth-child(odd) { color: var(--board-light); }
+.cg-wrap coords.files coord:nth-child(even) { color: var(--board-dark); }
+.cg-wrap coords.files.black coord:nth-child(odd) { color: var(--board-dark); }
+.cg-wrap coords.files.black coord:nth-child(even) { color: var(--board-light); }
 
 /* Game */
 .player { display: flex; align-items: center; gap: 12px; margin: 10px 0; }

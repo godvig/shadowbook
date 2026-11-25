@@ -1247,7 +1247,7 @@ function StatsSection({ games, tally, me }: { games: LiveGame[]; tally: Record<n
       ),
       note: `after ${st.played} ${st.played === 1 ? 'game' : 'games'}`,
     },
-    // Every finished game counts; a game without a clear crowd call (a tie, or under 5 calls) is not "right".
+    // Every finished game counts; a game without a clear crowd call (a tie, or a single call) is not "right".
     { label: 'Crowd was right', value: `${st.crowdRight} of ${st.played}`, note: `games where the most picked call came true${unclearNote}` },
     { label: 'Average length', value: st.avgMoves ? `${st.avgMoves} moves` : '–', note: `over ${st.played} ${st.played === 1 ? 'game' : 'games'}` },
     me && st.me
@@ -1278,7 +1278,7 @@ function StatsSection({ games, tally, me }: { games: LiveGame[]; tally: Record<n
               <span className="s" style={{ width: `${g.pct.sindarov}%` }} />
             </span>
             <span className={`res ${g.winner}`}>{g.winner === 'draw' ? 'Draw' : `${NAMES[g.winner]} won`}</span>
-            <span className={`mono verdict${g.crowd && !g.crowdRight ? '' : ' ok'}`}>{g.crowd ? (g.crowdRight ? 'crowd right' : 'upset') : g.unclear === 'tie' ? 'split' : g.unclear === 'few' ? 'too few calls' : 'no votes'}</span>
+            <span className={`mono verdict${g.crowd && !g.crowdRight ? '' : ' ok'}`}>{g.crowd ? (g.crowdRight ? 'crowd right' : 'upset') : g.unclear === 'tie' ? 'split' : g.unclear === 'few' ? 'one call only' : 'no votes'}</span>
           </li>
         ))}
       </ol>

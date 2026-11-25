@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { communityCall, countdown, stepKey, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, pointsFor, positionAt, sanMoves, winnerOf } from './match';
+import { callLabel, communityCall, countdown, stepKey, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, pointsFor, positionAt, sanMoves, winnerOf } from './match';
 import { base64url, challengeFor } from './lichessAuth';
 import type { LiveGame } from './types';
 
@@ -72,16 +72,22 @@ describe('community call', () => {
     expect(communityCall({})).toEqual({ kind: 'none' });
   });
 
-  it('shows only the count under five calls, even on a tie', () => {
+  it('shows only the count for a single call', () => {
     expect(communityCall({ gukesh: 1 })).toEqual({ kind: 'few', calls: 1 });
-    expect(communityCall({ gukesh: 2, sindarov: 2 })).toEqual({ kind: 'few', calls: 4 });
+    expect(callLabel(communityCall({ draw: 1 }))).toBe('1 call');
   });
 
-  it('shows the shares and the leader from five calls', () => {
+  it('shows the shares and the leader from two calls, always with the number of calls', () => {
+    expect(communityCall({ draw: 2 })).toEqual({ kind: 'bar', calls: 2, pct: { gukesh: 0, draw: 100, sindarov: 0 }, lead: 'draw' });
+    expect(callLabel(communityCall({ draw: 2 }))).toBe('Draw · 2 calls');
     expect(communityCall({ gukesh: 3, draw: 1, sindarov: 1 })).toEqual({ kind: 'bar', calls: 5, pct: { gukesh: 60, draw: 20, sindarov: 20 }, lead: 'gukesh' });
+    expect(callLabel(communityCall({ gukesh: 3, draw: 1, sindarov: 1 }))).toBe('Gukesh · 5 calls');
+    expect(callLabel(communityCall({}))).toBe('–');
   });
 
   it('calls a tie for the lead a split', () => {
+    expect(communityCall({ gukesh: 1, sindarov: 1 })).toMatchObject({ kind: 'bar', lead: 'split' });
+    expect(callLabel(communityCall({ gukesh: 2, sindarov: 2 }))).toBe('Split · 4 calls');
     expect(communityCall({ gukesh: 2, draw: 1, sindarov: 2 })).toMatchObject({ kind: 'bar', lead: 'split' });
     expect(communityCall({ draw: 3, sindarov: 3 })).toMatchObject({ kind: 'bar', lead: 'split' });
     expect(communityCall({ gukesh: 2, draw: 2, sindarov: 2 })).toMatchObject({ kind: 'bar', lead: 'split' });

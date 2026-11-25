@@ -1,6 +1,6 @@
 // Small pieces shared by the match hub and the game review page.
 import { useState } from 'react';
-import { communityCall } from './match';
+import { callLabel, communityCall } from './match';
 import { NAMES, type Finalist, type Pick } from './types';
 
 /** A finalist's name as on the banner: bold, gold for Gukesh, blue for Sindarov. */
@@ -11,8 +11,8 @@ export function PlayerName({ who }: { who: Finalist }) {
 export function CallCell({ votes }: { votes: Partial<Record<Pick, number>> }) {
   const c = communityCall(votes);
   if (c.kind === 'none') return <>–</>;
-  if (c.kind === 'few') return <span className="mono lv-muted-text">{c.calls === 1 ? '1 call' : `${c.calls} calls`}</span>;
-  const label = c.lead === 'split' ? 'Split' : `${c.lead === 'draw' ? 'Draw' : NAMES[c.lead]} ${c.pct[c.lead]}%`;
+  if (c.kind === 'few') return <span className="mono lv-muted-text">{callLabel(c)}</span>;
+  const label = callLabel(c);
   return (
     <span className="lv-call">
       <span className="lv-split mini" role="img" aria-label={`${c.calls} calls: Gukesh ${c.pct.gukesh}%, draw ${c.pct.draw}%, Sindarov ${c.pct.sindarov}%`}>

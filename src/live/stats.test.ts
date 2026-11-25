@@ -37,8 +37,8 @@ describe('match stats', () => {
   describe('"Crowd was right" counts every finished game', () => {
     const three = [g(1, { result: '1/2-1/2' }), g(2, { result: '1-0' }), g(3, { result: '0-1' })];
 
-    it('leaves a game with fewer than 5 calls out as "no clear call"', () => {
-      const s = matchStats(three, { 1: { draw: 5 }, 2: { gukesh: 3, sindarov: 1 }, 3: { sindarov: 4, draw: 2 } });
+    it('leaves a game with a single call out as "no clear call"', () => {
+      const s = matchStats(three, { 1: { draw: 2 }, 2: { gukesh: 1 }, 3: { sindarov: 4, draw: 2 } });
       expect(s.played).toBe(3);
       expect(s.crowdRight).toBe(2);
       expect(s.unclearCalls).toBe(1);
@@ -46,7 +46,7 @@ describe('match stats', () => {
     });
 
     it('treats a tie at the top as no clear call, even with many calls', () => {
-      const s = matchStats(three, { 1: { draw: 5, gukesh: 5 }, 2: { gukesh: 6 }, 3: {} });
+      const s = matchStats(three, { 1: { draw: 1, gukesh: 1 }, 2: { gukesh: 2 }, 3: {} });
       expect(s.crowdRight).toBe(1);
       expect(s.unclearCalls).toBe(2);
       expect(s.games.map((x) => x.unclear)).toEqual(['tie', null, 'none']);

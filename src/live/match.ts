@@ -1,6 +1,6 @@
 import { Chess } from 'chess.js';
 import { START_FEN } from '../lib/chess';
-import type { Finalist, LiveGame, Pick } from './types';
+import { NAMES, type Finalist, type LiveGame, type Pick } from './types';
 
 /** Who won, by player rather than colour. Null while undecided. */
 export function winnerOf(g: { result: LiveGame['result']; white: LiveGame['white']; black: LiveGame['black'] }): Pick | null {
@@ -101,13 +101,13 @@ export function clocksAt(pgn: string, ply: number): { w?: string; b?: string } {
   return out;
 }
 
-/** What the Community call column shows: nothing, a count under five calls, or the shares with the leading call. */
+/** What the Community call column shows: nothing, a lone call, or the shares with the leading call (from 2 calls). */
 export type CommunityCall =
   | { kind: 'none' }
   | { kind: 'few'; calls: number }
   | { kind: 'bar'; calls: number; pct: Record<Pick, number>; lead: Pick | 'split' };
 
-export const MIN_CALLS_FOR_BAR = 5;
+export const MIN_CALLS_FOR_BAR = 2;
 
 export function communityCall(votes: Partial<Record<Pick, number>>): CommunityCall {
   const counts: [Pick, number][] = [
@@ -130,4 +130,12 @@ export function stepKey(key: string, ply: number, last: number): number | undefi
   if (key === 'Home') return 0;
   if (key === 'End') return last;
   return undefined;
+}
+
+/** The call's text, always with the number of calls: "Draw · 2 calls", "Split · 4 calls", "1 call". */
+export function callLabel(c: CommunityCall): string {
+  if (c.kind === 'none') return '–';
+  const n = `${c.calls} ${c.calls === 1 ? 'call' : 'calls'}`;
+  if (c.kind === 'few') return n;
+  return `${c.lead === 'split' ? 'Split' : c.lead === 'draw' ? 'Draw' : NAMES[c.lead]} · ${n}`;
 }

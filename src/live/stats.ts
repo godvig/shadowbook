@@ -7,11 +7,11 @@ export interface GameStat {
   winner: Pick;
   pct: Record<Pick, number>;
   /**
-   * The crowd's call, only when it is clear: at least 5 calls and no tie at the top (the same rule as the
+   * The crowd's call, only when it is clear: at least 2 calls and no tie at the top (the same rule as the
    * Community call column). Null otherwise.
    */
   crowd: Pick | null;
-  /** Why there is no clear call: no votes, fewer than 5 calls, or a tie at the top. */
+  /** Why there is no clear call: no votes, a single call, or a tie at the top. */
   unclear: 'none' | 'few' | 'tie' | null;
   crowdRight: boolean;
   moves: number;
