@@ -2,6 +2,9 @@
 // build, in a Web Worker. Single-threaded so it runs without cross-origin isolation headers, which GitHub Pages
 // cannot send. scripts/copy-assets.mjs copies it into public/engine/; it is fetched only when first used.
 import type { Score } from './types';
+import { parseInfo, whitePov } from './uci';
+
+export { parseInfo, whitePov };
 
 export const ENGINE_URL = '/engine/stockfish-19-lite-single.js';
 export const DEPTH = 18;
@@ -10,23 +13,6 @@ export interface LocalEval extends Score {
   best: string;
   second?: Score;
   depth: number;
-}
-
-/** One `info` line: depth, which line (multipv), score from the side to move, and the first move of the line. */
-export function parseInfo(line: string): { depth: number; multipv: number; score: Score; move?: string } | null {
-  if (!line.startsWith('info ') || !line.includes(' score ') || line.includes(' lowerbound') || line.includes(' upperbound')) return null;
-  const depth = Number(line.match(/ depth (\d+)/)?.[1]);
-  const multipv = Number(line.match(/ multipv (\d+)/)?.[1] ?? 1);
-  const s = line.match(/ score (cp|mate) (-?\d+)/);
-  if (!depth || !s) return null;
-  const n = Number(s[2]);
-  return { depth, multipv, score: s[1] === 'cp' ? { cp: n } : { mate: n }, move: line.match(/ pv (\S+)/)?.[1] };
-}
-
-/** Stockfish scores from the side to move; the app keeps every score from White's side. */
-export function whitePov(s: Score, fen: string): Score {
-  if (fen.split(' ')[1] === 'w') return s;
-  return s.mate !== undefined ? { mate: -s.mate } : { cp: -(s.cp ?? 0) };
 }
 
 type Job = { fen: string; resolve: (e: LocalEval | null) => void; lines: Map<number, { depth: number; score: Score; move?: string }> };

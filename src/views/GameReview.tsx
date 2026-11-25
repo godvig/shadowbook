@@ -52,7 +52,7 @@ export default function GameReview({ game, tally, presets, actions }: { game: Li
   const [arrowDone, setArrowDone] = useStoredFlag(PREF.arrowFinished, true);
   const [arrowOn, setArrowOn] = live ? [arrowLive, setArrowLive] : [arrowDone, setArrowDone];
   // A finished game opens at the start; a live one follows the newest move (a large ply means "the last").
-  const { moves, fens, state } = useAnalysis(game.id, game.pgn, pinned ?? Number.MAX_SAFE_INTEGER, { engineOn, autoLocal: true });
+  const { moves, fens, state, startLocal } = useAnalysis(game.id, game.pgn, pinned ?? Number.MAX_SAFE_INTEGER, { engineOn, autoLocal: true });
   const last = moves.length;
   const ply = Math.min(pinned ?? last, last);
   const evals = useMemo(() => state?.evals ?? [], [state]);
@@ -196,6 +196,14 @@ export default function GameReview({ game, tally, presets, actions }: { game: Li
                       ? `${scoreText(shown)} from ${SOURCE[shown.source]}${shown.depth ? `, depth ${shown.depth}` : ''}.`
                       : ''}
             </p>
+            {engineOn && !state?.local && !!state?.capped && (
+              <p className="lv-eval-status">
+                {state.capped} {state.capped === 1 ? 'position has' : 'positions have'} no evaluation yet.{' '}
+                <button className="lv-chip-btn" onClick={startLocal}>
+                  Analyse the rest in this browser (2 MB)
+                </button>
+              </p>
+            )}
             <div className="lv-switches">
               <label>
                 <input type="checkbox" checked={engineOn} onChange={(e) => setEngineOn(e.target.checked)} /> Engine

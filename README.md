@@ -126,9 +126,14 @@ supabase/
   [Lichess](https://lichess.org/broadcast), read with the [Broadcast API](https://lichess.org/api#tag/broadcasts).
   `npm run presets` rebuilds `public/presets/*.json` from the events in
   [`scripts/presets.config.json`](scripts/presets.config.json); each file lists its source events. Run by hand, not in CI.
+- **Prepared evaluations:** `npm run evals` writes `public/evals/game-N.json` for every finished match game that has
+  none yet (`--force` redoes them), with Stockfish at depth 20 and two lines per position: a system `stockfish` binary
+  if there is one, else stockfish.js run by Node, several engines in parallel. The games come from the match hub's
+  database (read only, with the publishable key) or from `--pgn file.pgn`. Run by hand after each game and commit the
+  files; about 1.5 minutes per game on four cores.
 - **Evaluations:** in this order, the first that has one: a prepared file (`public/evals/game-N.json`, when present), the
   broadcast's own `[%eval]` comments, this browser's cache, [Lichess cloud evaluation](https://lichess.org/api#tag/analysis/GET/api/cloud-eval)
-  (one request at a time, a minute's pause after HTTP 429), and finally [Stockfish](https://stockfishchess.org/) in the
+  (one request at a time, a minute's pause after HTTP 429, at most 30 per page view), and finally [Stockfish](https://stockfishchess.org/) in the
   browser: [stockfish.js](https://github.com/nmrugg/stockfish.js) by Nathan Rugg (GPL-3.0), the lite single-threaded
   build (about 1.9 MB), in a Web Worker at depth 18. It is copied from npm into `public/engine/` with its licence text at
   build time and fetched only when an evaluation is missing. Move marks use Lichess's thresholds and winning-chances
@@ -157,7 +162,6 @@ CI runs all three on every push.
 - [ ] Turn debrief findings into review cards automatically
 - [ ] Clocks and premoves
 - [ ] Stockfish analysis next to Maia in the debrief
-- [ ] `scripts/evals.mjs`: prepared evaluations (`public/evals/game-N.json`) for each finished match game
 - [x] Installable app (PWA) with shortcuts to Match and Spar
 - [ ] Offline sparring with the cached Maia model
 

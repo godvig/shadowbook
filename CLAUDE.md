@@ -12,8 +12,10 @@ before changing anything. Everything in the repository is English.
 - main deploys to shadowbook.godvig.com through .github/workflows/pages.yml.
   Anything merged is live.
 - Supabase (supabase/): migrations and functions are deployed by the owner.
-  Never run them, never connect to the live project. Only the publishable key
-  may ever appear in client code or .env; never a secret or service_role key.
+  Never write to the live Supabase project, and never touch functions or
+  migrations there. Read-only selects with the publishable key are allowed.
+  Only the publishable key may ever appear in client code or .env; never a
+  secret or service_role key.
 
 ## External APIs
 - Lichess: follow its API rules. One request at a time, and on HTTP 429 wait

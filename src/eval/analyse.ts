@@ -9,6 +9,7 @@ import { Chess } from 'chess.js';
 import { fenKey } from '../lib/chess';
 import { getCached, putCached } from './cache';
 import { fetchCloud } from './cloud';
+import { readEvalFile, type EvalFile } from './file';
 import { DEPTH, type Engine } from './stockfish';
 import type { PosEval, Score } from './types';
 
@@ -19,6 +20,12 @@ export interface AnalysisInput {
   pgnEvals: (Score | undefined)[];
 }
 
+/** Cloud requests left for this page view; shared by every analysis on the page. */
+export interface CloudBudget {
+  left: number;
+}
+export const CLOUD_REQUESTS_PER_PAGE = 30;
+
 export interface AnalysisState {
   evals: (PosEval | undefined)[];
   /** Positions still waiting for an evaluation. */
@@ -27,6 +34,8 @@ export interface AnalysisState {
   local: boolean;
   /** The cloud had nothing for some positions and Stockfish is not allowed yet. */
   needsLocal: boolean;
+  /** Positions left without an evaluation because this page used up its cloud requests and Stockfish is not running. */
+  capped: number;
 }
 
 /** Checkmate and stalemate need no engine. */
@@ -37,13 +46,12 @@ export function terminal(fen: string): PosEval | undefined {
   return undefined;
 }
 
-/** public/evals/game-N.json: { "positions": { "<fen without move counters>": { "cp": 23, "best": "e2e4", … } } } */
+/** public/evals/game-N.json (eval/file.ts), made by scripts/build-evals.mjs; an empty map when there is none. */
 export async function loadGameFile(gameId: number, fetcher: typeof fetch = fetch): Promise<Map<string, PosEval>> {
   try {
     const res = await fetcher(`/evals/game-${gameId}.json`);
     if (!res.ok || !res.headers.get('content-type')?.includes('json')) return new Map();
-    const j = (await res.json()) as { positions?: Record<string, Omit<PosEval, 'source'>> };
-    return new Map(Object.entries(j.positions ?? {}).map(([k, v]) => [k, { ...v, source: 'file' as const }]));
+    return readEvalFile((await res.json()) as Partial<EvalFile>);
   } catch {
     return new Map();
   }
@@ -69,11 +77,15 @@ export class GameAnalysis {
   /** Plies tried this round and left for later (cloud busy, or Stockfish not allowed yet). */
   private skipped = new Set<number>();
   private ctl = new AbortController();
+  /** Plies given up on for this page view (cloud limit reached, Stockfish not running); not retried. */
+  private capped = new Set<number>();
+  /** The user asked for Stockfish explicitly ("Analyse the rest in this browser"). */
+  private forceLocal = false;
 
   constructor(
     private gameId: number,
     private onChange: (s: AnalysisState) => void,
-    private deps: { loadEngine: () => Promise<Engine>; fetcher?: typeof fetch; fileFetcher?: typeof fetch } = { loadEngine: async () => new (await import('./stockfish')).Engine() },
+    private deps: { loadEngine: () => Promise<Engine>; fetcher?: typeof fetch; fileFetcher?: typeof fetch; budget?: CloudBudget } = { loadEngine: async () => new (await import('./stockfish')).Engine() },
   ) {}
 
   /** Nothing is evaluated until the static file has been looked for, so it always wins when present. */
@@ -108,6 +120,13 @@ export class GameAnalysis {
     void this.run();
   }
 
+  /** "Analyse the rest in this browser": Stockfish also for the positions the cloud limit left empty. */
+  startLocal() {
+    this.forceLocal = true;
+    this.capped.clear();
+    this.allowLocal();
+  }
+
   setEngine(on: boolean) {
     this.engineOn = on;
     if (!on) {
@@ -129,12 +148,12 @@ export class GameAnalysis {
 
   private emit() {
     const missing = this.input.fens.filter((_, i) => !this.evals[i]).length;
-    this.onChange({ evals: [...this.evals], missing, local: this.local, needsLocal: this.needsLocal && !this.localOn });
+    this.onChange({ evals: [...this.evals], missing, local: this.local, needsLocal: this.needsLocal && !this.localOn, capped: this.capped.size });
   }
 
   private nextPly(): number | undefined {
     const n = this.input.fens.length;
-    const todo = (i: number) => i >= 0 && i < n && !this.evals[i] && !this.skipped.has(i);
+    const todo = (i: number) => i >= 0 && i < n && !this.evals[i] && !this.skipped.has(i) && !this.capped.has(i);
     if (todo(this.focus)) return this.focus;
     for (let i = 0; i < n; i++) if (todo(i)) return i;
     return undefined;
@@ -148,7 +167,8 @@ export class GameAnalysis {
         const fen = this.input.fens[ply];
         const found = await this.evaluate(fen, this.input.pgnEvals[ply]);
         if (this.stopped || this.input.fens[ply] !== fen) continue;
-        if (found) this.evals[ply] = found;
+        if (found === 'capped') this.capped.add(ply);
+        else if (found) this.evals[ply] = found;
         else this.skipped.add(ply);
         this.emit();
       }
@@ -167,7 +187,7 @@ export class GameAnalysis {
     }
   }
 
-  private async evaluate(fen: string, pgnEval: Score | undefined): Promise<PosEval | undefined> {
+  private async evaluate(fen: string, pgnEval: Score | undefined): Promise<PosEval | 'capped' | undefined> {
     const done = terminal(fen);
     if (done) return done;
     const fromFile = this.file.get(fenKey(fen));
@@ -178,7 +198,12 @@ export class GameAnalysis {
     let cloud = await getCached(cloudKey(fen));
     if (cloud) return cloud;
     if (!this.engineOn) return undefined;
-    if (cloud === undefined) {
+    const budget = this.deps.budget;
+    if (cloud === undefined && budget && budget.left <= 0) {
+      // This page has asked Lichess enough: Stockfish only if it is already running (or was asked for).
+      if (!(this.localOn && (this.engine || this.forceLocal))) return 'capped';
+    } else if (cloud === undefined) {
+      if (budget) budget.left--;
       let answer;
       try {
         answer = await fetchCloud(fen, { multiPv: 2, fetcher: this.deps.fetcher, signal: this.ctl.signal });

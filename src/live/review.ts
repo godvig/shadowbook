@@ -15,6 +15,21 @@ export const reviewHash = (id: number) => `#game/${id}`;
 
 const legalCount = (fen: string) => new Chess(fen).moves().length;
 
+const isCapture = (m: GameMove) => m.san.includes('x');
+const keyOf = (fen: string) => fen.split(' ').slice(0, 4).join(' ');
+
+/**
+ * No "!" for a move anyone would find (approved 2026-11-25): taking back on the square the opponent just
+ * captured on, or a move into a position that has already occurred (a repetition).
+ */
+export function obviousMove(moves: GameMove[], i: number, startFen: string): boolean {
+  const m = moves[i];
+  const prev = moves[i - 1];
+  if (prev && isCapture(prev) && isCapture(m) && m.uci.slice(2, 4) === prev.uci.slice(2, 4)) return true;
+  const key = keyOf(m.fen);
+  return keyOf(startFen) === key || moves.slice(0, i).some((x) => keyOf(x.fen) === key);
+}
+
 /**
  * The mark on each move (index = ply − 1). A glyph from the broadcast wins; otherwise "!" for an only move,
  * then ?! ? ?? from the change in winning chances. Moves without evaluations on both sides get none.
@@ -27,7 +42,7 @@ export function marksFor(moves: GameMove[], evals: (PosEval | undefined)[], star
     if (!before || !after) return undefined;
     const mover: Color = i % 2 === 0 ? 'w' : 'b';
     const fenBefore = i === 0 ? startFen : moves[i - 1].fen;
-    if (onlyMove(mover, m.uci, before, legalCount(fenBefore))) return '!';
+    if (!obviousMove(moves, i, startFen) && onlyMove(mover, m.uci, before, legalCount(fenBefore))) return '!';
     return judge(mover, before, after) ?? undefined;
   });
 }

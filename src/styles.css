@@ -159,5 +159,7 @@ cg-board square.check { background: radial-gradient(ellipse at center, rgba(255,
 .seo-content a { color: var(--blue); }
 .seo-content code { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
 body:not([data-view='match']) .seo-content { display: none; }
+/* A game's review page (#game/N) shows the game, not the match page's description. */
+body[data-review] .seo-content, body[data-review] .lang-note { display: none; }
 .lang-note { margin: 0 0 14px; font-size: 14px; }
 .lang-note a { color: var(--blue); }

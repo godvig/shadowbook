@@ -99,3 +99,90 @@ describe('game analysis sources', () => {
     expect(terminal(START)).toBeUndefined();
   });
 });
+
+describe('prepared evaluation files (scripts/build-evals.mjs → analyse.ts)', async () => {
+  const { toEvalFile, positionKey } = await import('./file');
+  const { fenKey } = await import('../lib/chess');
+
+  it('round-trips: what the script writes is what the review page uses, without asking anyone', async () => {
+    const fens = input().fens;
+    const results = fens.map((fen, i) => ({ fen, eval: i === 3 ? { mate: -4, best: 'f8c5', depth: 20 } : { cp: 10 * i, best: 'a2a3', second: { cp: 10 * i - 50 }, depth: 20 } }));
+    const json = JSON.stringify(toEvalFile({ game: 7, engine: 'Stockfish test', depth: 20, generated: '2026-11-25T00:00:00Z' }, results));
+    const served = (async (url: string) => {
+      expect(url).toBe('/evals/game-7.json');
+      return new Response(json, { headers: { 'content-type': 'application/json' } });
+    }) as unknown as typeof fetch;
+    let cloud = 0;
+    const fetcher = (async () => (cloud++, new Response('', { status: 404 }))) as unknown as typeof fetch;
+    let last: AnalysisState | undefined;
+    const a = new GameAnalysis(7, (s) => (last = s), { loadEngine: fakeEngine().loadEngine, fetcher, fileFetcher: served });
+    await a.start(input([{ cp: 999 }]), 0);
+    const s = await settle(a, () => last);
+    expect(cloud).toBe(0);
+    expect(s.evals.map((e) => e?.source)).toEqual(['file', 'file', 'file', 'file', 'file']);
+    expect(s.evals[2]).toEqual({ cp: 20, best: 'a2a3', second: { cp: -30 }, depth: 20, source: 'file' });
+    expect(s.evals[3]).toEqual({ mate: -4, best: 'f8c5', depth: 20, source: 'file' });
+    // The file beats the broadcast's own [%eval] on the same position.
+    expect(s.evals[1]?.cp).toBe(10);
+    expect(positionKey(fens[2])).toBe(fenKey(fens[2]));
+  });
+
+  it('the committed files have the format the review page reads', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const dir = new URL('../../public/evals/', import.meta.url);
+    for (const name of readdirSync(dir).filter((n) => /^game-\d+\.json$/.test(n))) {
+      const j = JSON.parse(readFileSync(new URL(name, dir), 'utf8'));
+      expect(j.game, name).toBe(Number(name.match(/\d+/)![0]));
+      expect(Object.keys(j.positions).length, name).toBeGreaterThan(10);
+      for (const [key, v] of Object.entries(j.positions) as [string, { cp?: number; mate?: number; best: string; depth: number }][]) {
+        expect(key.split(' '), `${name}: ${key}`).toHaveLength(4);
+        expect(v.best, `${name}: ${key}`).toMatch(/^[a-h][1-8][a-h][1-8][qrbn]?$/);
+        expect(typeof v.cp === 'number' || typeof v.mate === 'number', `${name}: ${key}`).toBe(true);
+        expect(v.depth).toBeGreaterThanOrEqual(18);
+      }
+    }
+  });
+});
+
+describe('cloud requests per page view', () => {
+  const many = parseGame('1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7');
+  const fens = [START, ...many.map((m) => m.fen)];
+  const big = { fens, pgnEvals: fens.map(() => undefined) };
+  const answer = (async () => new Response(JSON.stringify({ depth: 30, pvs: [{ moves: 'a2a3', cp: 5 }] }))) as unknown as typeof fetch;
+
+  it('stops asking Lichess after the page’s budget and leaves the rest empty while Stockfish is not running', async () => {
+    let calls = 0;
+    const fetcher = (async (...a: Parameters<typeof fetch>) => (calls++, answer(...a))) as typeof fetch;
+    const engine = fakeEngine();
+    const budget = { left: 4 };
+    let last: AnalysisState | undefined;
+    const a = new GameAnalysis(9, (s) => (last = s), { loadEngine: engine.loadEngine, fetcher, fileFetcher: noFile, budget });
+    a.allowLocal(); // the review page allows Stockfish, but it has not been needed yet
+    await a.start(big, 0);
+    for (let i = 0; i < 200 && (last?.capped ?? 0) + 4 < fens.length; i++) await new Promise((r) => setTimeout(r, 2));
+    expect(calls).toBe(4);
+    expect(budget.left).toBe(0);
+    expect(last?.capped).toBe(fens.length - 4);
+    expect(engine.asked).toHaveLength(0);
+    // "Analyse the rest in this browser" fills them with Stockfish, still without asking Lichess.
+    a.startLocal();
+    const s = await settle(a, () => last);
+    expect(calls).toBe(4);
+    expect(engine.asked).toHaveLength(fens.length - 4);
+    expect(s.capped).toBe(0);
+  });
+
+  it('uses Stockfish for the rest when it is already running', async () => {
+    let calls = 0;
+    const fetcher = (async () => (calls++, new Response('', { status: 404 }))) as unknown as typeof fetch;
+    const engine = fakeEngine();
+    let last: AnalysisState | undefined;
+    const a = new GameAnalysis(10, (s) => (last = s), { loadEngine: engine.loadEngine, fetcher, fileFetcher: noFile, budget: { left: 2 } });
+    a.allowLocal();
+    await a.start(big, 0);
+    const s = await settle(a, () => last);
+    expect(calls).toBe(2);
+    expect(s.evals.every((e) => e?.source === 'local')).toBe(true);
+    expect(s.capped).toBe(0);
+  });
+});

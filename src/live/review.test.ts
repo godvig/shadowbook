@@ -63,3 +63,35 @@ describe('opening and repertoire lines', () => {
     expect(repertoireLine(ucis, 0, 'w')).toEqual([]);
   });
 });
+
+describe('"!" is not given to obvious moves', () => {
+  // Best move, every other move clearly worse, position not decided: "!" unless the move is obvious.
+  const sharp = (best: string) => ev(0, { best, second: ev(-300) });
+  const blackSharp = (best: string) => ev(0, { best, second: ev(300) });
+
+  it('no "!" for taking back on the square the opponent just captured on', () => {
+    const g = parseGame('1. e4 d5 2. exd5 Qxd5');
+    const evals = [ev(0), ev(0), ev(0), ev(0, { best: 'd8d5', second: ev(300) }), ev(0)];
+    expect(marksFor(g, evals, START_FEN)[3]).toBeUndefined();
+  });
+
+  it('still gives "!" to a capture elsewhere, and to a quiet only move', () => {
+    const g = parseGame('1. e4 d5 2. exd5 Nf6');
+    expect(marksFor(g, [ev(0), ev(0), ev(0), blackSharp('g8f6'), ev(0)], START_FEN)[3]).toBe('!');
+    const h = parseGame('1. e4 d5 2. Nc3 dxe4');
+    expect(marksFor(h, [ev(0), ev(0), ev(0), blackSharp('d5e4'), ev(0)], START_FEN)[3]).toBe('!');
+    expect(marksFor(parseGame('1. e4'), [sharp('e2e4'), ev(0)], START_FEN)[0]).toBe('!');
+  });
+
+  it('no "!" for a move into a position that has already occurred', () => {
+    // 3.Ng1 and 4.Nf3 shuffle back into earlier positions; 4.Nf3 repeats the position after 2.Nf3.
+    const g = parseGame('1. e4 e5 2. Nf3 Nc6 3. Ng1 Nb8 4. Nf3');
+    const evals = g.map(() => ev(0));
+    evals.push(ev(0));
+    evals[6] = sharp('g1f3');
+    expect(marksFor(g, evals, START_FEN)[6]).toBeUndefined();
+    // The first time that position came up, the same move could still be an only move.
+    const first = [ev(0), ev(0), sharp('g1f3'), ev(0)];
+    expect(marksFor(g.slice(0, 3), first, START_FEN)[2]).toBe('!');
+  });
+});

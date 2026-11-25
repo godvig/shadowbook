@@ -226,6 +226,14 @@ export function Match({
       window.removeEventListener('popstate', sync);
     };
   }, []);
+  // The page's crawlable description (and the note pointing to it) belongs to the hub, not to a game's review.
+  useEffect(() => {
+    if (reviewId === null) return;
+    document.body.dataset.review = '';
+    return () => {
+      delete document.body.dataset.review;
+    };
+  }, [reviewId]);
   const openReview = (id: number) => (e: React.MouseEvent) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
@@ -818,8 +826,8 @@ function LiveRoom({
               <label>
                 <input type="checkbox" checked={arrowOn} onChange={(e) => setArrowOn(e.target.checked)} disabled={!engineOn} /> Best move arrow
               </label>
-              {engineOn && analysis.state?.needsLocal && !analysis.localAllowed && (
-                <button className="lv-chip-btn" onClick={analysis.allowLocal}>
+              {engineOn && (analysis.state?.needsLocal || !!analysis.state?.capped) && !analysis.state?.local && (
+                <button className="lv-chip-btn" onClick={analysis.startLocal}>
                   Analyse in this browser (2 MB)
                 </button>
               )}
