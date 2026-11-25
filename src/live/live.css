@@ -302,3 +302,10 @@
   .lv-review-main { grid-template-columns: 1fr; }
   .lv-moves { max-height: 260px; }
 }
+
+/* Results tile: three labelled numbers in the players' colours. */
+.lv-results { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font: 600 15px var(--lv-sans); }
+.lv-results > span { display: inline-flex; align-items: baseline; gap: 5px; color: var(--lv-text2); }
+.lv-results > span.gold { color: var(--lv-gold); }
+.lv-results > span.blue { color: var(--lv-blue); }
+.lv-results b { font: 800 30px/1 var(--lv-display); }

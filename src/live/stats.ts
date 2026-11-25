@@ -1,13 +1,18 @@
 // Match statistics computed from the games and the prediction tallies.
-import { percentages, pointsFor, sanMoves, winnerOf } from './match';
+import { communityCall, percentages, pointsFor, sanMoves, winnerOf } from './match';
 import type { LiveGame, Pick } from './types';
 
 export interface GameStat {
   id: number;
   winner: Pick;
   pct: Record<Pick, number>;
-  /** The crowd's most picked outcome, or null with no votes or a tie at the top. */
+  /**
+   * The crowd's call, only when it is clear: at least 5 calls and no tie at the top (the same rule as the
+   * Community call column). Null otherwise.
+   */
   crowd: Pick | null;
+  /** Why there is no clear call: no votes, fewer than 5 calls, or a tie at the top. */
+  unclear: 'none' | 'few' | 'tie' | null;
   crowdRight: boolean;
   moves: number;
   firstMove: string | null;
@@ -18,20 +23,13 @@ export interface MatchStats {
   played: number;
   results: Record<Pick, number>;
   crowdRight: number;
-  crowdCalls: number;
+  /** Finished games without a clear crowd call; they count as not right. */
+  unclearCalls: number;
   avgMoves: number | null;
   firstMoves: { move: string; count: number }[];
   openings: { name: string; count: number }[];
   games: GameStat[];
   me: { calls: number; correct: number; points: number } | null;
-}
-
-const ORDER: Pick[] = ['gukesh', 'draw', 'sindarov'];
-
-function topOf(pct: Record<Pick, number>): Pick | null {
-  const sorted = ORDER.map((p) => [p, pct[p]] as const).sort((a, b) => b[1] - a[1]);
-  if (!sorted[0][1] || sorted[0][1] === sorted[1][1]) return null;
-  return sorted[0][0];
 }
 
 function countBy(values: (string | null)[]): { key: string; count: number }[] {
@@ -43,11 +41,14 @@ function countBy(values: (string | null)[]): { key: string; count: number }[] {
 export function matchStats(games: LiveGame[], tally: Record<number, Partial<Record<Pick, number>>>, myPicks?: { game_id: number; pick: Pick }[]): MatchStats {
   const finished = games.filter((g) => g.status === 'finished' && winnerOf(g));
   const stats: GameStat[] = finished.map((g) => {
-    const pct = percentages(tally[g.id] ?? {});
-    const crowd = topOf(pct);
+    const votes = tally[g.id] ?? {};
+    const pct = percentages(votes);
+    const call = communityCall(votes);
+    const crowd = call.kind === 'bar' && call.lead !== 'split' ? call.lead : null;
+    const unclear = crowd ? null : call.kind === 'none' ? 'none' : call.kind === 'few' ? 'few' : 'tie';
     const winner = winnerOf(g)!;
     const sans = sanMoves(g.pgn);
-    return { id: g.id, winner, pct, crowd, crowdRight: crowd === winner, moves: Math.ceil(sans.length / 2), firstMove: sans[0] ? `1.${sans[0]}` : null, opening: g.opening };
+    return { id: g.id, winner, pct, crowd, unclear, crowdRight: crowd === winner, moves: Math.ceil(sans.length / 2), firstMove: sans[0] ? `1.${sans[0]}` : null, opening: g.opening };
   });
   const results = { gukesh: 0, draw: 0, sindarov: 0 };
   for (const s of stats) results[s.winner]++;
@@ -68,7 +69,7 @@ export function matchStats(games: LiveGame[], tally: Record<number, Partial<Reco
     played: stats.length,
     results,
     crowdRight: stats.filter((s) => s.crowdRight).length,
-    crowdCalls: stats.filter((s) => s.crowd).length,
+    unclearCalls: stats.filter((s) => !s.crowd).length,
     avgMoves: withMoves.length ? Math.round(withMoves.reduce((a, s) => a + s.moves, 0) / withMoves.length) : null,
     firstMoves: countBy(stats.map((s) => s.firstMove)).map(({ key, count }) => ({ move: key, count })),
     openings: countBy(stats.map((s) => s.opening)).map(({ key, count }) => ({ name: key, count })),

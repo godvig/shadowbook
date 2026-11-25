@@ -1,4 +1,4 @@
-import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Board } from '../components/Board';
 import { sansToUcis } from '../lib/chess';
@@ -1228,9 +1228,27 @@ function StatsSection({ games, tally, me }: { games: LiveGame[]; tally: Record<n
         <p className="lv-muted">Results, openings and how often the crowd got it right appear here after game 1.</p>
       </section>
     );
-  const tiles = [
-    { label: 'Results', value: `${st.results.gukesh}–${st.results.draw}–${st.results.sindarov}`, note: 'Gukesh wins · draws · Sindarov wins' },
-    { label: 'Crowd was right', value: `${st.crowdRight} of ${st.crowdCalls}`, note: 'games where the most picked call came true' },
+  const unclearNote = st.unclearCalls ? ` · ${st.unclearCalls} ${st.unclearCalls === 1 ? 'game' : 'games'} had no clear call` : '';
+  const tiles: { label: string; value: ReactNode; note: string }[] = [
+    {
+      label: 'Results',
+      value: (
+        <span className="lv-results">
+          <span className="gold">
+            <b>{st.results.gukesh}</b> Gukesh
+          </span>
+          <span>
+            <b>{st.results.draw}</b> {st.results.draw === 1 ? 'Draw' : 'Draws'}
+          </span>
+          <span className="blue">
+            <b>{st.results.sindarov}</b> Sindarov
+          </span>
+        </span>
+      ),
+      note: `after ${st.played} ${st.played === 1 ? 'game' : 'games'}`,
+    },
+    // Every finished game counts; a game without a clear crowd call (a tie, or under 5 calls) is not "right".
+    { label: 'Crowd was right', value: `${st.crowdRight} of ${st.played}`, note: `games where the most picked call came true${unclearNote}` },
     { label: 'Average length', value: st.avgMoves ? `${st.avgMoves} moves` : '–', note: `over ${st.played} ${st.played === 1 ? 'game' : 'games'}` },
     me && st.me
       ? { label: 'Your record', value: `${st.me.correct} of ${st.me.calls}`, note: `${st.me.points} ${st.me.points === 1 ? 'point' : 'points'} so far` }
@@ -1260,7 +1278,7 @@ function StatsSection({ games, tally, me }: { games: LiveGame[]; tally: Record<n
               <span className="s" style={{ width: `${g.pct.sindarov}%` }} />
             </span>
             <span className={`res ${g.winner}`}>{g.winner === 'draw' ? 'Draw' : `${NAMES[g.winner]} won`}</span>
-            <span className={`mono verdict${g.crowd && !g.crowdRight ? '' : ' ok'}`}>{g.crowd ? (g.crowdRight ? 'crowd right' : 'upset') : g.pct.gukesh + g.pct.draw + g.pct.sindarov ? 'split' : 'no votes'}</span>
+            <span className={`mono verdict${g.crowd && !g.crowdRight ? '' : ' ok'}`}>{g.crowd ? (g.crowdRight ? 'crowd right' : 'upset') : g.unclear === 'tie' ? 'split' : g.unclear === 'few' ? 'too few calls' : 'no votes'}</span>
           </li>
         ))}
       </ol>
