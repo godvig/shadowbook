@@ -1,8 +1,10 @@
-// Stockfish's best move from Lichess's cloud evaluation: evaluations Lichess has already computed and stored, so
-// no engine runs here. Only the position (FEN) is sent; each answer is kept for 30 days in the Library's cache.
-// https://lichess.org/api#tag/Analysis/operation/apiCloudEval
-import { Chess } from 'chess.js';
+// Stockfish's best move from Lichess's cloud evaluation (eval/cloud.ts): evaluations Lichess has already computed
+// and stored, so no engine runs here. Only the position (FEN) is sent; each answer is kept for 30 days in the
+// Library's cache.
 import { fenKey } from '../lib/chess';
+import { fetchCloud, normalUci } from '../eval/cloud';
+
+export { normalUci };
 
 export interface Eval {
   /** The best move, in normal UCI (castling as e1g1, not Lichess's e1h1). */
@@ -13,11 +15,6 @@ export interface Eval {
   depth: number;
 }
 
-interface CloudAnswer {
-  depth: number;
-  pvs: { moves: string; cp?: number; mate?: number }[];
-}
-
 interface Cache {
   get(key: string): Promise<{ at: number; value: Eval | null } | undefined>;
   put(key: string, value: { at: number; value: Eval | null }): Promise<void>;
@@ -25,15 +22,6 @@ interface Cache {
 
 const DAY = 86_400_000;
 export const KEEP_DAYS = 30;
-
-/** Lichess writes castling as the king taking its own rook (e1h1). */
-export function normalUci(fen: string, uci: string): string {
-  const chess = new Chess(fen);
-  const piece = chess.get(uci.slice(0, 2) as never);
-  if (piece?.type !== 'k') return uci;
-  const castles: Record<string, string> = { e1h1: 'e1g1', e1a1: 'e1c1', e8h8: 'e8g8', e8a8: 'e8c8' };
-  return castles[uci] ?? uci;
-}
 
 /**
  * The best move in a position, or null when Lichess has no evaluation for it (it only stores positions that have
@@ -44,17 +32,11 @@ export async function cloudEval(fen: string, opts: { fetcher?: typeof fetch; cac
   const key = `eval:${fenKey(fen)}`;
   const hit = await opts.cache?.get(key).catch(() => undefined);
   if (hit && now - hit.at < KEEP_DAYS * DAY) return hit.value;
-  const res = await (opts.fetcher ?? fetch)(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}`, { signal: opts.signal });
-  let value: Eval | null = null;
-  if (res.ok) {
-    const j = (await res.json()) as CloudAnswer;
-    const pv = j.pvs?.[0];
-    const first = pv?.moves.split(' ')[0];
-    if (first) value = { best: normalUci(fen, first), cp: pv.cp, mate: pv.mate, depth: j.depth };
-  } else if (res.status !== 404) {
-    // Busy (429) or another error: say nothing now, and ask again next time.
-    return null;
-  }
+  // Through the shared Lichess queue (eval/lichess.ts): one request at a time, a minute's pause after a 429.
+  const answer = await fetchCloud(fen, { fetcher: opts.fetcher, signal: opts.signal });
+  // Busy (429) or another error: say nothing now, and ask again next time.
+  if (answer === undefined) return null;
+  const value: Eval | null = answer && { best: answer.best, ...(answer.mate !== undefined ? { mate: answer.mate } : { cp: answer.cp }), depth: answer.depth };
   await opts.cache?.put(key, { at: now, value }).catch(() => undefined);
   return value;
 }

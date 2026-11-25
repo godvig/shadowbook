@@ -68,6 +68,22 @@ export function Privacy({ onBack }: { onBack: () => void }) {
         </li>
       </ul>
 
+      <h2>Evaluation bar and game review</h2>
+      <ul>
+        <li>
+          <strong>Lichess cloud evaluation:</strong> to show who is better, your browser asks Lichess for its stored evaluation of the positions on the
+          board, one at a time. Only the position (FEN) is sent, nothing about you. Answers are kept in your browser (IndexedDB) for 30 days.
+        </li>
+        <li>
+          <strong>Stockfish in your browser:</strong> where Lichess has no evaluation, the review page runs the Stockfish engine on your own device (about
+          2 MB, downloaded from this site). On the live board it only starts when you press "Analyse in this browser". Nothing is sent anywhere.
+        </li>
+        <li>
+          <strong>Turning it off:</strong> the Engine switch beside the board stops both. Your choice, and whether you want the best-move arrow, are kept
+          in your browser (localStorage).
+        </li>
+      </ul>
+
       <h2>Visit counting</h2>
       <ul>
         <li>

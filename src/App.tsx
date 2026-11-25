@@ -138,6 +138,7 @@ export default function App() {
               setOpponent(o);
               start(settings, startUcis);
             }}
+            onLibrary={(st) => setView({ name: 'library', start: st, key: Date.now() })}
           />
         )}
         {view.name === 'home' && (

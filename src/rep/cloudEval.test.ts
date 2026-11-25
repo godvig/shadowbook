@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { resetLichessQueue } from '../eval/lichess';
 import { cloudEval, evalText, KEEP_DAYS, normalUci } from './cloudEval';
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -12,6 +13,9 @@ function memory() {
 }
 
 describe('cloud evaluation', () => {
+  // A 429 pauses the shared Lichess queue for a minute; start each test without that pause.
+  afterEach(resetLichessQueue);
+
   it('reads the best move and turns castling into normal UCI', async () => {
     expect(await cloudEval(START, { fetcher: answer('e2e4 e7e5') })).toEqual({ best: 'e2e4', cp: 30, depth: 40 });
     expect((await cloudEval(CASTLE, { fetcher: answer('e1h1 d7d6') }))?.best).toBe('e1g1');

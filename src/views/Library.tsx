@@ -39,6 +39,10 @@ function positionAfter(line: string[]) {
 export interface LibraryStart {
   prep?: Color;
   fill?: { color: Color; line: string[] };
+  /** "Train this opening" from a match game: the moves (UCI), practised as one line, saved nowhere. */
+  drill?: { color: Color; line: string[]; title: string };
+  /** "Add to my repertoire" from a match game: the line goes into a deck the user picks, or a new one. */
+  add?: { color: Color; line: string[]; name: string };
 }
 
 /** "Add a move" from Report: the deck of that colour that has the position, else the one trained last. */
@@ -190,6 +194,8 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
     if (!lib || handledStart.current || !start) return;
     handledStart.current = true;
     if (start.prep) go({ page: 'prep' });
+    if (start.drill) go({ page: 'drill' });
+    if (start.add) go({ page: 'add' });
     if (start.fill) {
       const { color, line } = start.fill;
       const d = deckFor(lib.decks, lib.edges, color, line) ?? createDeck(lib, color);
@@ -216,6 +222,18 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.page, prepColor, opponent, lib === null]);
+
+  // A match opening to practise: a deck that exists only here, never saved, so grading changes nothing.
+  const matchDrill = useMemo(() => {
+    if (!start?.drill) return null;
+    const { color, line, title } = start.drill;
+    const deck = newDeck({ name: title, color, source: { kind: 'pgn' } });
+    const edges = addPath([], deck, line);
+    // Fresh cards in memory only, so the line counts as new and is taught first.
+    const now = new Date();
+    const cards = syncCards([deck], edges, [], now).cards;
+    return { deck, edges, cards, items: linesFor(deck, edges, Object.fromEntries(cards.map((c) => [c.id, c])), now) };
+  }, [start]);
 
   if (error) return <div className="card rep-wrap"><p className="err">{error}</p></div>;
   if (!lib || !own) return <div className="card rep-wrap"><p className="muted">Opening your library…</p></div>;
@@ -494,6 +512,50 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
         }}
       />
     );
+  } else if (route.page === 'drill' && matchDrill) {
+    page = (
+      <Train
+        key={'drill' + matchDrill.deck.id}
+        mode="lines"
+        fixed
+        title={`${matchDrill.deck.name} (as ${matchDrill.deck.color === 'w' ? 'White' : 'Black'})`}
+        items={matchDrill.items}
+        edges={{ [matchDrill.deck.id]: matchDrill.edges }}
+        cards={matchDrill.cards}
+        newLeft={matchDrill.cards.length}
+        practice
+        settings={lib.settings}
+        decks={lib.decks}
+        allEdges={lib.edges}
+        dueBy={new Map()}
+        onEffects={() => {}}
+        onSettings={changeSettings}
+        stopLabel="Back to Library"
+        nextLabel="Back to Library"
+        onDone={toShelf}
+      />
+    );
+  } else if (route.page === 'add' && start?.add) {
+    const { color, line, name } = start.add;
+    page = (
+      <AddLine
+        color={color}
+        line={line}
+        name={name}
+        decks={lib.decks.filter((d) => d.color === color)}
+        onPick={(d) => {
+          editDeck(lib, d, addPath(edgesBy.get(d.id) ?? [], d, line));
+          go({ page: 'deck', id: d.id }, line);
+        }}
+        onNew={(deckName) => {
+          const deck = newDeck({ name: deckName, color, source: { kind: 'pgn' } });
+          const r = commitBuild(lib, [{ deck, edges: addPath([], deck, line), isNew: true }]);
+          save({ ...lib, ...r.lib }, r.write);
+          go({ page: 'deck', id: deck.id }, line);
+        }}
+        onCancel={toShelf}
+      />
+    );
   } else if (route.page === 'prep' && opponent) {
     page = (
       <Train
@@ -592,3 +654,53 @@ export function Library({ opponent, start }: { opponent?: Opponent | null; start
 
 /** The train page for all decks at once. */
 const ALL = 'all';
+
+/** "Add to my repertoire" from a match game: into one of your decks of that colour, or a new deck. */
+function AddLine({ color, line, name, decks, onPick, onNew, onCancel }: { color: Color; line: string[]; name: string; decks: Deck[]; onPick(d: Deck): void; onNew(name: string): void; onCancel(): void }) {
+  const [deckName, setDeckName] = useState(name);
+  const sans = useMemo(() => {
+    const c = new Chess(START_FEN);
+    return line.map((u, i) => `${i % 2 === 0 ? `${i / 2 + 1}.` : ''}${playUci(c, u).san}`).join(' ');
+  }, [line]);
+  const side = color === 'w' ? 'White' : 'Black';
+  return (
+    <div className="card rep-wrap rep-addline">
+      <h2>Add to my repertoire</h2>
+      <p className="muted">
+        As {side}: <span className="mono">{sans}</span>
+      </p>
+      {decks.length > 0 && (
+        <>
+          <h3>Into one of your {side} decks</h3>
+          <ul className="rep-addline-decks">
+            {decks.map((d) => (
+              <li key={d.id}>
+                <button className="btn" onClick={() => onPick(d)}>
+                  {d.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <h3>Or a new deck</h3>
+      <form
+        className="rep-addline-new"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (deckName.trim()) onNew(deckName.trim());
+        }}
+      >
+        <input aria-label="Name of the new deck" value={deckName} onChange={(e) => setDeckName(e.target.value)} maxLength={80} />
+        <button className="btn primary" type="submit" disabled={!deckName.trim()}>
+          Create deck
+        </button>
+      </form>
+      <p>
+        <button className="btn ghost" onClick={onCancel}>
+          Cancel
+        </button>
+      </p>
+    </div>
+  );
+}

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Board } from '../components/Board';
 import { sansToUcis } from '../lib/chess';
@@ -8,7 +8,7 @@ import { availablePresets, bookExit, loadPreset, type PresetId } from '../lib/pr
 import { SourceError } from '../lib/sources';
 import * as api from '../live/api';
 import { completeLogin, getToken, isOAuthReturn, login, logout } from '../live/lichessAuth';
-import { clocksAt, communityCall, countdown, pointsFor, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, stepKey, winnerOf } from '../live/match';
+import { clocksAt, countdown, pointsFor, fmtScore, isOpen, matchScore, moveLabel, nextGame, percentages, positionAt, sanMoves, stepKey, winnerOf } from '../live/match';
 import { NAMES, type Finalist, type LiveGame, type Me, type Message, type Pick, type SyncSettings } from '../live/types';
 import type { Color } from '../lib/types';
 import type { GameSettings } from './Game';
@@ -17,7 +17,16 @@ import { buildIcs, downloadIcs } from '../live/calendar';
 import { matchLang } from '../live/routes';
 import { matchStats } from '../live/stats';
 import { GLYPHS, GLYPH_MEANING, mentions, reactionsByMessage, segments, type Glyph, type Reaction } from '../live/chat';
+import { CallCell, PlayerName, PREF, useStoredFlag } from '../live/bits';
+import { EvalBar } from '../live/EvalBar';
+import { useAnalysis } from '../live/useAnalysis';
+import { openingLine, repertoireLine, reviewHash, reviewIdFrom } from '../live/review';
+import type { ReviewActions } from './GameReview';
+import type { LibraryStart } from './Library';
 import '../live/live.css';
+
+// The review page loads only when a game is opened.
+const GameReview = lazy(() => import('./GameReview'));
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
 const PICKS: { pick: Pick; label: string }[] = [
@@ -37,7 +46,18 @@ function useNow(ms = 1000) {
   return now;
 }
 
-export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponent) => void; onSpar: (o: Opponent, settings: GameSettings, startUcis: string[]) => void; onPrivacy: () => void }) {
+export function Match({
+  onScouted,
+  onSpar,
+  onPrivacy,
+  onLibrary,
+}: {
+  onScouted: (o: Opponent) => void;
+  onSpar: (o: Opponent, settings: GameSettings, startUcis: string[]) => void;
+  onPrivacy: () => void;
+  /** "Train this opening" and "Add to my repertoire" from the review page. */
+  onLibrary: (start: LibraryStart) => void;
+}) {
   const [games, setGames] = useState<LiveGame[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reactions, setReactions] = useState<Reaction[]>([]);
@@ -162,6 +182,122 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
     }
   };
 
+  const account =
+    accountSlot &&
+        createPortal(
+          <AccountMenu
+            me={me}
+            onLogout={async () => {
+              await logout();
+              setMe(null);
+            }}
+            onDownload={() =>
+              guard(async () => {
+                const data = await api.myData();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+                a.download = `shadowbook-${me!.username}.json`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+              })
+            }
+            onDelete={() =>
+              guard(async () => {
+                await api.deleteMe();
+                await logout();
+                setMe(null);
+                setNotice('Your account and everything in it has been deleted.');
+                refreshStats();
+              })
+            }
+            onPrivacy={onPrivacy}
+          />,
+          accountSlot,
+        );
+
+  // The review page of one game lives at #game/N on the match page (live/review.ts).
+  const [reviewId, setReviewId] = useState(() => reviewIdFrom(location.hash));
+  useEffect(() => {
+    const sync = () => setReviewId(reviewIdFrom(location.hash));
+    window.addEventListener('hashchange', sync);
+    window.addEventListener('popstate', sync);
+    return () => {
+      window.removeEventListener('hashchange', sync);
+      window.removeEventListener('popstate', sync);
+    };
+  }, []);
+  const openReview = (id: number) => (e: React.MouseEvent) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    history.pushState({ fromHub: true }, '', `${location.pathname}${location.search}${reviewHash(id)}`);
+    setReviewId(id);
+  };
+  const leaveReview = () => {
+    // Back to the hub the way we came, so Forward still works; a review opened from a link replaces itself.
+    if ((history.state as { fromHub?: boolean } | null)?.fromHub) history.back();
+    else {
+      history.replaceState(null, '', `${location.pathname}${location.search}`);
+      setReviewId(null);
+    }
+  };
+
+  const reviewActions: ReviewActions = {
+    onBack: leaveReview,
+    onSparOpening: sparOpening,
+    onSparFrom: async (g, ucis, bot) => {
+      try {
+        setNotice('');
+        const you: Color = g.white === bot ? 'b' : 'w';
+        onSpar(await loadPreset(bot, games), { you, elo: MAIA_ELO_MAX, yourElo: 1500, useBook: true }, ucis);
+      } catch (e) {
+        setNotice((e as Error).message);
+      }
+    },
+    onTrain: async (g, side) => {
+      const ucis = sansToUcis(sanMoves(g.pgn));
+      // Where the game left each bot's pre-match book; without the bots' data, the first 20 plies.
+      const exits = await Promise.all(
+        (['w', 'b'] as const).map(async (c) => {
+          const bot = c === 'w' ? g.white : g.black;
+          if (!bot || !presets.includes(bot)) return ucis.length;
+          try {
+            return bookExit((await loadPreset(bot)).book, c, ucis);
+          } catch {
+            return ucis.length;
+          }
+        }),
+      );
+      onLibrary({ drill: { color: side, line: openingLine(ucis, exits, side), title: `${g.label}${g.opening ? `: ${g.opening}` : ''}` } });
+    },
+    onAdd: (g, ucis, ply, side) => onLibrary({ add: { color: side, line: repertoireLine(ucis, ply, side), name: `${g.label}${g.opening ? `: ${g.opening}` : ''}` } }),
+  };
+
+  if (reviewId !== null) {
+    const g = games.find((x) => x.id === reviewId);
+    return (
+      <div className="live">
+        {account}
+        {notice && (
+          <p className="lv-notice" role="alert">
+            {notice}
+          </p>
+        )}
+        {g ? (
+          <Suspense fallback={<p className="lv-muted">Opening the game…</p>}>
+            <GameReview game={g} tally={tally[g.id] ?? {}} presets={presets} actions={reviewActions} />
+          </Suspense>
+        ) : (
+          <div className="lv-card">
+            <p className="lv-muted">{loaded ? `There is no game ${reviewId} yet.` : 'Loading the game…'}</p>
+            <button className="lv-link" onClick={leaveReview}>
+              ← Match hub
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const guard = async (fn: () => Promise<unknown>) => {
     if (!getToken()) return login();
     try {
@@ -241,8 +377,14 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
           const label = g.status === 'finished' ? (w === 'draw' ? '½' : w === 'gukesh' ? 'G' : 'S') : String(g.id);
           const aria = `${g.label}: ${g.status === 'finished' ? (w === 'draw' ? 'draw' : `${NAMES[w as 'gukesh']} won`) : g.status}`;
           return (
-            <li key={g.id} className={cls} aria-label={aria}>
-              {label}
+            <li key={g.id} className={cls}>
+              {g.status === 'scheduled' ? (
+                <span aria-label={aria}>{label}</span>
+              ) : (
+                <a href={reviewHash(g.id)} onClick={openReview(g.id)} aria-label={`${aria}. Review the game`}>
+                  {label}
+                </a>
+              )}
             </li>
           );
         })}
@@ -257,37 +399,7 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
         </p>
       )}
 
-      {accountSlot &&
-        createPortal(
-          <AccountMenu
-            me={me}
-            onLogout={async () => {
-              await logout();
-              setMe(null);
-            }}
-            onDownload={() =>
-              guard(async () => {
-                const data = await api.myData();
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-                a.download = `shadowbook-${me!.username}.json`;
-                a.click();
-                setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-              })
-            }
-            onDelete={() =>
-              guard(async () => {
-                await api.deleteMe();
-                await logout();
-                setMe(null);
-                setNotice('Your account and everything in it has been deleted.');
-                refreshStats();
-              })
-            }
-            onPrivacy={onPrivacy}
-          />,
-          accountSlot,
-        )}
+      {account}
       {!me && (
         <p className="lv-account">
           Guests can follow everything. Log in with Lichess at the top right to predict and chat.{' '}
@@ -336,6 +448,7 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
             });
           })
         }
+        reviewLink={(id) => ({ href: reviewHash(id), onClick: openReview(id) })}
         me={me} onPost={(gid, ply, body) => guard(() => api.post(gid, ply, body))} onHide={(id) => guard(() => api.adminHide(id))} onBan={(id) => guard(() => api.adminBan(id))} />
 
       <StatsSection games={games} tally={tally} me={me} />
@@ -382,7 +495,15 @@ export function Match({ onScouted, onSpar, onPrivacy }: { onScouted: (o: Opponen
                 return (
                   <Fragment key={g.id}>
                     <tr className={underRow ? 'has-op' : undefined}>
-                      <td className="mono">{g.id}</td>
+                      <td className="mono">
+                        {g.status === 'scheduled' ? (
+                          g.id
+                        ) : (
+                          <a className="lv-review-link" href={reviewHash(g.id)} onClick={openReview(g.id)} aria-label={`Review ${g.label}`}>
+                            {g.id}
+                          </a>
+                        )}
+                      </td>
                       <td>{g.white ? <PlayerName who={g.white} /> : '–'}</td>
                       <td>
                         {g.status === 'finished' ? (
@@ -581,7 +702,9 @@ function LiveRoom({
   onPost,
   onHide,
   onBan,
+  reviewLink,
 }: {
+  reviewLink: (id: number) => { href: string; onClick: (e: React.MouseEvent) => void };
   games: LiveGame[];
   live: LiveGame | null;
   messages: Message[];
@@ -602,6 +725,15 @@ function LiveRoom({
   const [pinned, setPinned] = useState<number | null>(null);
   const boardArea = useRef<HTMLDivElement>(null);
   const ply = pinned ?? sans.length;
+  // Evaluation beside the board: the broadcast's and the cloud's; Stockfish only after "Analyse in this browser".
+  const [engineOn, setEngineOn] = useStoredFlag(PREF.engine, true);
+  const [arrowLive, setArrowLive] = useStoredFlag(PREF.arrowLive, false);
+  const [arrowDone, setArrowDone] = useStoredFlag(PREF.arrowFinished, true);
+  const isLive = game?.status === 'live';
+  const [arrowOn, setArrowOn] = isLive ? [arrowLive, setArrowLive] : [arrowDone, setArrowDone];
+  const analysis = useAnalysis(game?.id ?? null, game?.pgn ?? '', ply, { engineOn, autoLocal: false });
+  const shownEval = analysis.state?.evals[ply];
+  const best = engineOn && arrowOn ? shownEval?.best : undefined;
   const pos = positionAt(sans, ply);
   const clocks = clocksAt(game?.pgn ?? '', ply);
   const [draft, setDraft] = useState('');
@@ -659,8 +791,11 @@ function LiveRoom({
                 {clocks.b && <span className="lv-clock">{clocks.b}</span>} {game.status === 'live' ? 'LIVE' : game.result ?? ''}
               </span>
             </div>
-            <div className="lv-board">
-              <Board fen={pos.fen} orientation="w" movable={null} lastMove={pos.lastMove} />
+            <div className="lv-board-eval">
+              <EvalBar score={shownEval} busy={!!analysis.state?.local} />
+              <div className="lv-board">
+                <Board fen={pos.fen} orientation="w" movable={null} lastMove={pos.lastMove} shapes={best ? [{ orig: best.slice(0, 2) as never, dest: best.slice(2, 4) as never, brush: 'green' }] : []} />
+              </div>
             </div>
             <div className="lv-player">
               <span className={game.white === 'gukesh' ? 'gold' : 'blue'}>{white}</span>
@@ -675,6 +810,23 @@ function LiveRoom({
               <button onClick={() => setPinned(null)} className={pinned === null ? 'on' : ''}>
                 {game.status === 'live' ? 'Follow live' : 'Last move'}
               </button>
+            </div>
+            <div className="lv-switches">
+              <label>
+                <input type="checkbox" checked={engineOn} onChange={(e) => setEngineOn(e.target.checked)} /> Engine
+              </label>
+              <label>
+                <input type="checkbox" checked={arrowOn} onChange={(e) => setArrowOn(e.target.checked)} disabled={!engineOn} /> Best move arrow
+              </label>
+              {engineOn && analysis.state?.needsLocal && !analysis.localAllowed && (
+                <button className="lv-chip-btn" onClick={analysis.allowLocal}>
+                  Analyse in this browser (2 MB)
+                </button>
+              )}
+              {analysis.state?.local && <span className="lv-muted-text">Analysing…</span>}
+              <a className="lv-review-link grow-right" {...reviewLink(game.id)}>
+                Review the game →
+              </a>
             </div>
           </div>
         ) : (
@@ -1296,28 +1448,6 @@ function AccountMenu({ me, onLogout, onDownload, onDelete, onPrivacy }: { me: Me
         </div>
       )}
     </div>
-  );
-}
-
-/** A finalist's name as on the banner: bold, gold for Gukesh, blue for Sindarov. */
-function PlayerName({ who }: { who: Finalist }) {
-  return <strong className={`lv-pname ${who === 'gukesh' ? 'gold' : 'blue'}`}>{NAMES[who]}</strong>;
-}
-
-function CallCell({ votes }: { votes: Partial<Record<Pick, number>> }) {
-  const c = communityCall(votes);
-  if (c.kind === 'none') return <>–</>;
-  if (c.kind === 'few') return <span className="mono lv-muted-text">{c.calls === 1 ? '1 call' : `${c.calls} calls`}</span>;
-  const label = c.lead === 'split' ? 'Split' : `${c.lead === 'draw' ? 'Draw' : NAMES[c.lead]} ${c.pct[c.lead]}%`;
-  return (
-    <span className="lv-call">
-      <span className="lv-split mini" role="img" aria-label={`${c.calls} calls: Gukesh ${c.pct.gukesh}%, draw ${c.pct.draw}%, Sindarov ${c.pct.sindarov}%`}>
-        <span className="g" style={{ width: `${c.pct.gukesh}%` }} />
-        <span className="d" style={{ width: `${c.pct.draw}%` }} />
-        <span className="s" style={{ width: `${c.pct.sindarov}%` }} />
-      </span>
-      <span className={`mono${c.lead === 'gukesh' ? ' gold' : c.lead === 'sindarov' ? ' blue' : ''}`}>{label}</span>
-    </span>
   );
 }
 

@@ -82,6 +82,9 @@ Live at [shadowbook.godvig.com/world-chess-championship-2026](https://shadowbook
 - **Match stats** – results, how often the crowd was right, openings and first moves, and your own record.
 - **Calendar reminders** – an `.ics` file with an alarm 30 minutes before each game locks.
 - **Spar the opening** – jump from the match straight into a sparring game against anyone.
+- **Game review** – every game has its own page (`#game/N`): the whole game with clocks, an evaluation bar and graph,
+  Lichess-style marks (?! ? ?? and "!" for an only move), and buttons to play on from any position against the
+  players' bots, train the opening or add it to your Library. The live board on the hub has the evaluation bar too.
 
 ![Live board and chat pinned to moves](docs/match-board.png)
 
@@ -123,6 +126,14 @@ supabase/
   [Lichess](https://lichess.org/broadcast), read with the [Broadcast API](https://lichess.org/api#tag/broadcasts).
   `npm run presets` rebuilds `public/presets/*.json` from the events in
   [`scripts/presets.config.json`](scripts/presets.config.json); each file lists its source events. Run by hand, not in CI.
+- **Evaluations:** in this order, the first that has one: a prepared file (`public/evals/game-N.json`, when present), the
+  broadcast's own `[%eval]` comments, this browser's cache, [Lichess cloud evaluation](https://lichess.org/api#tag/analysis/GET/api/cloud-eval)
+  (one request at a time, a minute's pause after HTTP 429), and finally [Stockfish](https://stockfishchess.org/) in the
+  browser: [stockfish.js](https://github.com/nmrugg/stockfish.js) by Nathan Rugg (GPL-3.0), the lite single-threaded
+  build (about 1.9 MB), in a Web Worker at depth 18. It is copied from npm into `public/engine/` with its licence text at
+  build time and fetched only when an evaluation is missing. Move marks use Lichess's thresholds and winning-chances
+  formula from [lila](https://github.com/lichess-org/lila) (AGPL-3.0): `modules/tree/src/main/Advice.scala` and
+  `ui/lib/src/ceval/winningChances.ts`. The Engine switch beside the board turns off the cloud and Stockfish.
 - **Opening names:** [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings) (CC0-1.0).
   `npm run openings` rebuilds `src/rep/model/openings.json` from a pinned commit. Run by hand, not in CI.
 
@@ -146,6 +157,7 @@ CI runs all three on every push.
 - [ ] Turn debrief findings into review cards automatically
 - [ ] Clocks and premoves
 - [ ] Stockfish analysis next to Maia in the debrief
+- [ ] `scripts/evals.mjs`: prepared evaluations (`public/evals/game-N.json`) for each finished match game
 - [x] Installable app (PWA) with shortcuts to Match and Spar
 - [ ] Offline sparring with the cached Maia model
 
@@ -160,4 +172,9 @@ Shadowbook is built with AI assistance (Claude Code). The architecture and the d
 ## License
 
 [AGPL-3.0](LICENSE). Shadowbook builds on GPL-licensed Chessground and MIT-licensed Maia3, chess.js and ONNX Runtime.
+In-browser analysis uses [Stockfish](https://github.com/official-stockfish/Stockfish) through
+[stockfish.js](https://github.com/nmrugg/stockfish.js), both GPL-3.0, which may be combined with AGPL-3.0 code
+(section 13 of both licences). The engine files are unmodified; their licence is served next to them as
+`/engine/COPYING.txt`, and their source is at the links above. The move-judgement thresholds and the winning-chances
+formula follow lila (AGPL-3.0).
 Not affiliated with chess.com or Lichess.

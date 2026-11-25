@@ -25,6 +25,7 @@
     "onnxruntime-web": "^1.31.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "stockfish": "^19.0.1",
     "ts-fsrs": "^5.4.2"
   },
   "devDependencies": {

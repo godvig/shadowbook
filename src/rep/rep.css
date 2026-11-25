@@ -284,3 +284,10 @@ body[data-view="library"] .footer { display: none; }
 .progress-table thead th { color: var(--muted); font-weight: 500; font-size: 13px; }
 /* The charts scale down with the screen, so their text is set larger on a phone to stay readable. */
 @media (max-width: 560px) { .chart-n { font-size: 19px; } .chart-label { font-size: 17px; } }
+
+/* "Add to my repertoire" from a match game (views/Library.tsx AddLine). */
+.rep-addline { display: flex; flex-direction: column; gap: 12px; }
+.rep-addline h2, .rep-addline h3, .rep-addline p { margin: 0; }
+.rep-addline-decks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.rep-addline-new { display: flex; flex-wrap: wrap; gap: 8px; }
+.rep-addline-new input { flex: 1 1 240px; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--bg); color: var(--text); font: inherit; }
